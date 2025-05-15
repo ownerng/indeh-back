@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
 import { UserRepository } from "../../../domain/repositories/UserRepository";
+import { LoginUseCase } from "../../../app/usecases/UserUseCases";
 
-export class userController {
-    constructor(private userRepository: UserRepository) {}
+export class UserController {
+    constructor( private loginUseCase: LoginUseCase) {}
 
     async login(req: Request, res: Response): Promise<void> {
         const { username, password } = req.body;
 
         try {
-            const user = await this.userRepository.login(username, password);
+            const user = await this.loginUseCase.execute(username, password);
             if (user) {
                 res.status(200).json({ message: "Login successful", user });
             } else {
