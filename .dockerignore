@@ -1,0 +1,4 @@
+nose_modules
+dist
+.git
+*.log
