@@ -19,6 +19,10 @@ const start = async () => {
     console.log('✅ Script init.sql ejecutado');
     const app = createApp();
     const PORT = process.env.PORT || 3000;
+    app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
+
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (error) {
     console.error('Error during startup:', error);
