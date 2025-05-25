@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { UserRole } from "../../../domain/entities/user";
 
 @Entity("users")
 export class PgUser {
@@ -10,4 +11,11 @@ export class PgUser {
 
     @Column({ type: "varchar", length: 255 })
     password!: string;
+
+    @Column({
+        type: "enum",
+        enum: UserRole,
+        nullable: false, // Asegúrate que cada usuario tenga un rol
+    })
+    role!: UserRole;
 }

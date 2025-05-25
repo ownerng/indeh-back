@@ -70,7 +70,7 @@ async updateAllCalificationsByStudentId(studentId: string, updates: Calification
         const updateData = updatesMap.get(pgCal.id); // Busca los datos de actualización para esta calificación específica
 
         if (updateData) { // Si encontramos datos de actualización para este ID
-           pgCal.calificacion = updateData.calificacion;
+           pgCal.corte1 = updateData.calificacion;
 
             updatedPgCalifications.push(pgCal); // Añade la calificación modificada al array para guardar
         }
@@ -88,7 +88,10 @@ async updateAllCalificationsByStudentId(studentId: string, updates: Calification
             pgCalification.id,
             pgCalification.id_student,
             pgCalification.id_subject,
-            pgCalification.calificacion,
+            pgCalification.corte1,
+            pgCalification.corte2,
+            pgCalification.corte3,
+            pgCalification.definitiva,
             pgCalification.fecha_creacion,
             pgCalification.fecha_modificacion
         );
@@ -97,7 +100,10 @@ async updateAllCalificationsByStudentId(studentId: string, updates: Calification
     private toPgEntity(calification: Calification): PgCalification {
         const pgCalification = new PgCalification();
         pgCalification.id = calification.id;
-        pgCalification.calificacion = calification.calificacion;
+        pgCalification.corte1 = calification.corte1;
+        pgCalification.corte2 = calification.corte2;
+        pgCalification.corte3 = calification.corte3;
+        pgCalification.definitiva = calification.definitiva;
         pgCalification.fecha_creacion = calification.fecha_creacion;
         pgCalification.fecha_modificacion = calification.fecha_modificacion;
         pgCalification.student = { id: calification.id_student } as PgStudent;
