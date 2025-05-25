@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boletín de Calificaciones - INDEH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 12px;
+            background-color: white;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            border: 2px solid black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            background-color: white;
+        }
+
+        .logo-circle {
+            width: 60px;
+            height: 60px;
+            border: 2px solid navy;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: navy;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .header-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-text h1 {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        .header-text .subtitle {
+            font-size: 10px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .boletin-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            letter-spacing: 2px;
+        }
+
+        .student-info {
+            border: 2px solid black;
+            margin-bottom: 10px;
+            display: flex;
+        }
+
+        .student-name {
+            background-color: white;
+            padding: 8px;
+            font-weight: bold;
+            flex: 1;
+            border-right: 2px solid black;
+        }
+
+        .student-details {
+            display: flex;
+        }
+
+        .cycle-info {
+            padding: 8px;
+            border-right: 2px solid black;
+            font-size: 10px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .grade-info {
+            padding: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            min-width: 50px;
+        }
+
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            font-size: 10px;
+        }
+        .grades-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.grades-table th, .grades-table td {
+    border: 1px solid black;
+    padding: 4px; /* Increased padding a bit */
+    text-align: center;
+    vertical-align: middle;
+}
+
+.grades-table thead th {
+    background-color: #e0e0e0; /* Light gray header background */
+    font-weight: bold;
+}
+
+.grades-table th.areas-header {
+    width: 22%; /* Approximate width for subject names */
+}
+.grades-table th.main-category-header {
+    font-size: 0.95em;
+}
+.grades-table th.percentage {
+    font-weight: normal; /* Percentages are not bold in the image */
+}
+
+.grades-table tbody td:first-child { /* Subject names */
+    text-align: left;
+    padding-left: 8px;
+}
+
+.grades-table td.num {
+    text-align: right;
+    padding-right: 8px;
+}
+.grades-table td.final-avg {
+    font-weight: bold;
+}
+
+.grades-table tr.overall-promedio td {
+    font-weight: bold;
+    background-color: #f8f8f8; /* Slight distinction for promedio row */
+}
+.grades-table tr.overall-promedio td.promedio-label {
+    text-align: right;
+    padding-right: 15px;
+}
+
+        .main-table th,
+        .main-table td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: center;
+        }
+
+        .main-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .subject-cell {
+            text-align: left;
+            padding-left: 8px;
+            font-weight: bold;
+        }
+
+        .numeric-equiv {
+            background-color: #f8f8f8;
+        }
+
+        .performance-level {
+            background-color: #f0f0f0;
+        }
+
+        .final-report {
+            background-color: #e8e8e8;
+        }
+
+        .promedio-row {
+            background-color: #d0d0d0;
+            font-weight: bold;
+        }
+
+        .footer-section {
+            display: flex;
+            margin-top: 20px;
+            border: 2px solid black;
+        }
+
+        .observations {
+            flex: 1;
+            border-right: 2px solid black;
+            padding: 10px;
+            height: 80px;
+        }
+
+        .signature {
+            flex: 1;
+            border-right: 2px solid black;
+            padding: 10px;
+            text-align: center;
+            height: 80px;
+        }
+
+
+        .escala-valoracion {
+            flex: 1;
+            height: 80px;
+        }
+
+        .escala-title {
+            font-weight: bold;
+            text-align: center;
+            padding: 4px;
+            border: 1px solid black;
+            background-color: #e0e0e0;
+            /* Gray background */
+            border-bottom: none;
+            /* Connects to table */
+            font-size: 0.95em;
+        }
+
+        .escala-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .escala-table td {
+            border: 1px solid black;
+            padding: 3px 5px;
+            font-size: 0.9em;
+        }
+
+        .escala-table td:first-child {
+            width: 65%;
+        }
+
+        .escala-table td:last-child {
+            text-align: center;
+        }
+
+
+        .contact-info {
+            text-align: center;
+            font-size: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .jornada {
+            position: absolute;
+            top: 120px;
+            right: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="jornada">Mayo 2025 -- Jornada Mañana</div>
+
+    <div class="header">
+       <div class="logo">
+    <img src="https://file.garden/aBr7cUHDNAeZ_VnW/logoindeh.png" alt="indeh" style="width: 100%; height: 100%; object-fit: contain;">
+</div>
+        <div class="header-text">
+            <h1>INSTITUTO NACIONAL DE DESARROLLO HUMANO</h1>
+            <div class="subtitle">BACHILLERATO POR CICLOS LECTIVOS ESPECIALES INTEGRADOS DECRETO 3011 DE 1997</div>
+            <div class="subtitle">Resolución No. 2023 del 21 de noviembre de 2021 de S.E.M.</div>
+        </div>
+    </div>
+
+    <div class="boletin-title">BOLETÍN DE CALIFICACIONES</div>
+
+    <div class="student-info">
+        <div class="student-name">Nombre del Estudiante: LOZANO PEREZ LUCIA</div>
+        <div class="student-details">
+            <div class="cycle-info">CICLO II ED. MEDIA</div>
+            <div class="grade-info">11</div>
+        </div>
+    </div>
+
+    <table class="grades-table">
+<thead>
+    <tr>
+        <th rowspan="4" style="width: 200px;">AREAS Y/O ASIGNATURAS</th>
+        <th colspan="6">EQUIVALENCIA NUMERICA</th>
+        <th colspan="3">NIVEL DE DESEMPEÑO</th>
+        <th colspan="2">INFORME FINAL</th>
+    </tr>
+    <tr>
+        <th colspan="6">PERIODOS</th>
+        <th colspan="3">PERIODOS</th>
+        <th rowspan="3">PROMEDIO FINAL</th>
+        <th rowspan="3">OBSERVACIONES</th>
+    </tr>
+    <tr>
+        <th colspan="2">1</th>
+        <th colspan="2">2</th>
+        <th colspan="2">3</th>
+        <th rowspan="2">1</th>
+        <th rowspan="2">2</th>
+        <th rowspan="2">3</th>
+    </tr>
+    <tr>
+        <th>Nota</th>
+        <th>30%</th>
+        <th>Nota</th>
+        <th>30%</th>
+        <th>Nota</th>
+        <th>40%</th>
+    </tr>
+</thead>
+            <tbody>
+                <tr>
+                    <td>Lengua Castellana</td>
+                    <td class="num">4,00</td><td class="num">1,20</td>
+                    <td class="num">4,9</td><td class="num">1,47</td>
+                    <td>-</td><td>-</td>
+                    <td>Alto</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">3,0</td><td></td>
+                </tr>
+                <tr>
+                    <td>Idioma Extranjero - Ingles</td>
+                    <td class="num">4,90</td><td class="num">1,47</td>
+                    <td class="num">5,0</td><td class="num">1,50</td>
+                    <td>-</td><td>-</td>
+                    <td>Superior</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">3,3</td><td></td>
+                </tr>
+                <tr>
+                    <td>Química</td>
+                    <td class="num">4,00</td><td class="num">1,20</td>
+                    <td class="num">5,0</td><td class="num">1,50</td>
+                    <td>-</td><td>-</td>
+                    <td>Alto</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">3,0</td><td></td>
+                </tr>
+                <tr>
+                    <td>Física</td>
+                    <td class="num">4,90</td><td class="num">1,47</td>
+                    <td class="num">4,2</td><td class="num">1,26</td>
+                    <td>-</td><td>-</td>
+                    <td>Superior</td><td>Alto</td><td>-</td>
+                    <td class="num final-avg">3,0</td><td></td>
+                </tr>
+                <tr>
+                    <td>MATEMATICAS</td>
+                    <td class="num">4,10</td><td class="num">1,23</td>
+                    <td class="num">5,0</td><td class="num">1,50</td>
+                    <td>-</td><td>-</td>
+                    <td>Alto</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">3,0</td><td></td>
+                </tr>
+                <tr>
+                    <td>ED. FINANCIERA - EMPRENDIMIENTO</td>
+                    <td class="num">3,90</td><td class="num">1,17</td>
+                    <td class="num">4,5</td><td class="num">1,35</td>
+                    <td>-</td><td>-</td>
+                    <td>Básico</td><td>Alto</td><td>-</td>
+                    <td class="num final-avg">2,8</td><td></td>
+                </tr>
+                <tr>
+                    <td>FILOSOFIA</td>
+                    <td class="num">3,70</td><td class="num">1,11</td>
+                    <td class="num">4,5</td><td class="num">1,35</td>
+                    <td>-</td><td>-</td>
+                    <td>Básico</td><td>Alto</td><td>-</td>
+                    <td class="num final-avg">2,7</td><td></td>
+                </tr>
+                <tr>
+                    <td>EDUCACION ETICA Y RELIGION</td>
+                    <td class="num">4,00</td><td class="num">1,20</td>
+                    <td class="num">4,8</td><td class="num">1,44</td>
+                    <td>-</td><td>-</td>
+                    <td>Alto</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">2,9</td><td></td>
+                </tr>
+                <tr>
+                    <td>TECNOLOGIA E INFORMATICA</td>
+                    <td class="num">5,00</td><td class="num">1,50</td>
+                    <td class="num">5,0</td><td class="num">1,50</td>
+                    <td>-</td><td>-</td>
+                    <td>Superior</td><td>Superior</td><td>-</td>
+                    <td class="num final-avg">3,3</td><td></td>
+                </tr>
+                <tr>
+                    <td>EDUCACION FISICA</td>
+                    <td class="num">4,20</td><td class="num">1,26</td>
+                    <td class="num">4,0</td><td class="num">1,20</td>
+                    <td>-</td><td>-</td>
+                    <td>Alto</td><td>Alto</td><td>-</td>
+                    <td class="num final-avg">2,7</td><td></td>
+                </tr>
+                <tr>
+                    <td>COMPORTAMIENTO</td>
+                    <td class="num">5,00</td><td class="num">1,50</td>
+                    <td class="num">5,0</td><td class="num">1,50</td>
+                    <td>-</td><td>-</td>
+                    <td>Superior</td><td>Superior</td><td>Superior</td>
+                    <td class="num final-avg">3,3</td><td></td>
+                </tr>
+                <tr class="overall-promedio">
+                    <td class="promedio-label">Promedio</td>
+                    <td class="num">3,88</td><td></td>
+                    <td class="num">4,3</td><td></td>
+                    <td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td>
+                </tr>
+                <tr class="overall-promedio">
+                    <td></td>
+                    <td class="num">1</td><td></td>
+                    <td class="num">1</td><td></td>
+                    <td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+
+    <div class="footer-section">
+        <div class="observations">
+            <strong>OBSERVACIONES</strong>
+        </div>
+        <div class="signature">
+            <strong>FIRMA RECTORA</strong>
+        </div>
+        <div class="escala-valoracion">
+            <div class="escala-title">ESCALA DE VALORACION</div>
+            <table class="escala-table">
+                <tbody>
+                    <tr>
+                        <td>Desempeño Bajo</td>
+                        <td>De 1,0 a 2,9</td>
+                    </tr>
+                    <tr>
+                        <td>Desempeño Básico</td>
+                        <td>De 3,0 a 3,9</td>
+                    </tr>
+                    <tr>
+                        <td>Desempeño Alto</td>
+                        <td>De 4,0 a 4,5</td>
+                    </tr>
+                    <tr>
+                        <td>Desempeño Superior</td>
+                        <td>De 4,6 a 5,0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <div class="contact-info">
+        Carrera 44 B No. 33-126 Barrio Barzal &nbsp;&nbsp; celular 313 455 96 06 &nbsp;&nbsp;&nbsp;
+        www.institutoindeh.com.co
+    </div>
+</body>
+
+</html>
