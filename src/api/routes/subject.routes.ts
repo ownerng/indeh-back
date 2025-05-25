@@ -13,4 +13,11 @@ routerSubject.post(
   subjectControllerInstance.createSubject
 );
 
+routerSubject.get(
+  '/',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  subjectControllerInstance.listSubjects
+);
+
 export default routerSubject;

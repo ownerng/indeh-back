@@ -12,11 +12,19 @@ export class SubjectService {
         return newSubject;
     }
 
-    async getAllSubjects(): Promise<PgSubject[]> {
-        return await this.subjectRepository.find({
+    async getAllSubjects(): Promise<(Omit<PgSubject, 'profesor'> & { profesor: Omit<PgUser, 'password'> })[]> {
+        const subjects = await this.subjectRepository.find({
             relations: {
                 profesor: true,
             },
+        });
+
+        return subjects.map(subject => {
+            const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
+            return {
+                ...subject,
+                profesor: profesorWithoutPassword,
+            };
         });
     }
 
