@@ -13,4 +13,18 @@ routerStudent.post(
   studentControllerInstance.createStudent
 );
 
+routerStudent.get(
+  '/',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  studentControllerInstance.getAllStudents
+)
+
+routerStudent.get(
+  '/profesor',
+  authenticateToken,
+  authorizeRole([UserRole.PROFESOR]),
+  studentControllerInstance.getStudentsByProfessorId
+)
+
 export default routerStudent;
