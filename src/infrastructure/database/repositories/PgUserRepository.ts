@@ -18,6 +18,8 @@ export class PgUserRepository implements UserRepository {
         return this.toDomainEntity(pgUser);
     }
 
+    
+
     private toDomainEntity(pgUser: PgUser): User {
         return new User(pgUser.id, pgUser.username, pgUser.password);
     }
