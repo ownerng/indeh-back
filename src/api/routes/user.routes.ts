@@ -12,5 +12,11 @@ routerUser.post(
   authorizeRole([UserRole.EJECUTIVO]),
   userControllerInstance.createUser
 );
+routerUser.get(
+  '/profesores',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  userControllerInstance.listProfesores
+);
 
 export default routerUser;

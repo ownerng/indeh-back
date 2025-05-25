@@ -30,6 +30,11 @@ export class UserService {
     return this.userRepository.findOneBy({ username });
   }
 
+  async getUsersByRole(role: UserRole): Promise<Omit<PgUser, 'password'>[]> {
+    const users = await this.userRepository.find({ where: { role } });
+    return users.map(({ password, ...userWithoutPassword }) => userWithoutPassword);
+  }
+
   async createInitialAdminUser(): Promise<void> {
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin';

@@ -30,4 +30,14 @@ export class UserController {
       }
     }
   }
+
+  async listProfesores(req: Request, res: Response): Promise<void> {
+    try {
+      const profesores = await userService.getUsersByRole(UserRole.PROFESOR);
+      res.status(200).json(profesores);
+    } catch (error) {
+      console.error("Error al listar profesores:", error);
+      res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+  }
 }
