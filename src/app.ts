@@ -5,6 +5,7 @@ import routerUser from './api/routes/user.routes';
 import { UserService } from './services/user.service';
 import { AppDataSource } from './config/data-source';
 import routerStudent from './api/routes/student.routes';
+import routerSubject from './api/routes/subject.routes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
 app.use('/api/auth', routerAuth);
 app.use('/api/users', routerUser);
 app.use('/api/students', routerStudent); 
+app.use('/api/subjects', routerSubject); 
 
 app.use((err: Error, req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => {
   console.error(err.stack);

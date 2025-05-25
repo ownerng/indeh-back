@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import dotenv from 'dotenv';
 import { PgUser } from "../entities/PgUser";
 import { PgStudent } from "../entities/PgStudent";
+import { PgSubject } from "../entities/PgSubject";
 dotenv.config();
 
 export const AppDataSource = new DataSource({
@@ -14,7 +15,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || "indehdb",
   synchronize: true, 
   logging: false, 
-  entities: [PgUser, PgStudent], 
+  entities: [PgUser, PgStudent, PgSubject], 
   migrations: [],
   subscribers: [],
 });
