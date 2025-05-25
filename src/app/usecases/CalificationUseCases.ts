@@ -1,7 +1,20 @@
-import { LargeNumberLike } from "node:crypto";
 import { Calification } from "../../domain/entities/calification";
 import { CalificationRepository } from "../../domain/repositories/CalificationRepository";
+import { CreateCalificationDTO } from "../dtos/CreateCalificationDTO";
 
+
+
+export class CreateCalificationUseCase {
+    constructor(private calificationRepository: CalificationRepository) {}
+
+    async execute(calificationData: CreateCalificationDTO): Promise<Calification> {
+        const newCalification = await this.calificationRepository.createCalification(calificationData);
+        if (!newCalification) {
+            throw new Error("Failed to create calification");
+        }
+        return newCalification;
+    }
+}
 
 export class GetCalificationsByStudentIdUseCase {
     constructor(private calificationRepository: CalificationRepository) {}
