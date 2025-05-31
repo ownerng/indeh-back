@@ -8,16 +8,16 @@ import jwt from 'jsonwebtoken';
 export class AuthService {
   private userRepository = AppDataSource.getRepository(PgUser);
 
-  async login(username: string, passwordInput: string): Promise<string | null> {
+  async login(username: string, passwordInput: string): Promise<{ token: string, id: number, role: string } | null> {
     const user = await this.userRepository.findOneBy({ username });
 
     if (!user) {
-      return null; // Usuario no encontrado
+      return null;
     }
 
     const isPasswordValid = await bcrypt.compare(passwordInput, user.password);
     if (!isPasswordValid) {
-      return null; // Contraseña incorrecta
+      return null;
     }
 
     const tokenPayload = {
@@ -26,6 +26,12 @@ export class AuthService {
       role: user.role,
     };
 
-    return jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' }); // Token expira en 1 hora
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
+
+    return {
+      token,
+      id: user.id,
+      role: user.role,
+    };
   }
 }

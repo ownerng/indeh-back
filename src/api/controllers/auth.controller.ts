@@ -18,7 +18,7 @@ export class AuthController {
         res.status(401).json({ message: 'Credenciales inválidas.' });
         return;
       }
-      res.status(200).json({ token });
+      res.status(200).json(token);
     } catch (error) {
       console.error("Error en login:", error);
       res.status(500).json({ message: 'Error interno del servidor.' });

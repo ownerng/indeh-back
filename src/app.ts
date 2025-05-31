@@ -1,4 +1,5 @@
 import express, { Application, Request as ExpressRequest, Response as ExpressResponse, NextFunction as ExpressNextFunction } from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import routerAuth from './api/routes/auth.routes';
 import routerUser from './api/routes/user.routes';
@@ -12,9 +13,15 @@ dotenv.config();
 
 const app: Application = express();
 const port = process.env.SERVER_PORT || 3000;
-
+const corsOptions = {
+  origin: 'http://localhost:5173', // <--- Especifica el origen de tu frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // <--- Métodos permitidos
+  allowedHeaders: ['Content-Type', 'Authorization'], // <--- Encabezados permitidos (importante para tokens)
+  credentials: true // Si necesitas manejar cookies o sesiones (no aplica directamente para JWT en este caso, pero es buena práctica)
+};
 // Middlewares
 app.use(express.json()); // Para parsear application/json
+app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true })); // Para parsear application/x-www-form-urlencoded
 
 // Rutas
