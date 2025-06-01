@@ -6,6 +6,10 @@ import { UserRole } from "../../entities/UserRole";
 const routerUser = express.Router();
 const userControllerInstance = new UserController();
 
+
+routerUser.use(express.json());
+routerUser.use(express.urlencoded({ extended: true }));
+
 routerUser.post(
   '/',
   authenticateToken,

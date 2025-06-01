@@ -6,6 +6,10 @@ import { UserRole } from '../../entities/UserRole';
 const routerSubject = express.Router();
 const subjectControllerInstance = new SubjectController();
 
+
+routerSubject.use(express.json());
+routerSubject.use(express.urlencoded({ extended: true }));
+
 routerSubject.post(
   '/',
   authenticateToken,

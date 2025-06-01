@@ -11,6 +11,11 @@ export class ScoreService {
         return await this.scoreRepository.save(newScore);
     }
 
+    async getScoresByStudentId(studentId: number): Promise<PgScore[]> {
+        const scores = await this.scoreRepository.find({ where: { id_student: studentId } });
+        return scores;
+    }
+
     async updateCorte1(id: number, corte1: number): Promise<PgScore | null> {
         const score = await this.scoreRepository.findOneBy({ id });
         if (!score) {

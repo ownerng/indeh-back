@@ -28,6 +28,23 @@ export class SubjectService {
         });
     }
 
+    async getSubjectById(id: number): Promise<(Omit<PgSubject, 'profesor'> & { profesor: Omit<PgUser, 'password'> }) | null> {
+        const subject = await this.subjectRepository.findOne({
+            where: { id },
+            relations: { profesor: true },
+        });
+
+        if (!subject) {
+            return null;
+        }
+
+        const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
+        return {
+            ...subject,
+            profesor: profesorWithoutPassword,
+        };
+    }
+
     async getSubjectsIdsByProfessorId(professorId: number): Promise<number[]> {
         const subjects = await this.subjectRepository.find({
             where: {

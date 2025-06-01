@@ -6,6 +6,8 @@ import { UserRole } from '../../entities/UserRole';
 const routerScores = express.Router();
 const scoreControllerInstance = new ScoreController();
 
+routerScores.use(express.json());
+routerScores.use(express.urlencoded({ extended: true }));
 
 routerScores.post('/', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.createScore);
 routerScores.put('/corte1/:id', authenticateToken, authorizeRole([UserRole.PROFESOR]), scoreControllerInstance.updateCorte1);

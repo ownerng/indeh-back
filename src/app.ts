@@ -20,9 +20,7 @@ const corsOptions = {
   credentials: true // Si necesitas manejar cookies o sesiones (no aplica directamente para JWT en este caso, pero es buena práctica)
 };
 // Middlewares
-app.use(express.json()); // Para parsear application/json
 app.use(cors(corsOptions));
-app.use(express.urlencoded({ extended: true })); // Para parsear application/x-www-form-urlencoded
 
 // Rutas
 app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
