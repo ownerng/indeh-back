@@ -1,10 +1,11 @@
 import { CreateScoreDTO } from "../../dtos/createScoreDTO";
 import { ScoreService } from "../../services/score.service";
+import { Request, Response } from "express";
 
 const scoreService = new ScoreService();
 
 export class ScoreController {
-    async createScore(req: any, res: any): Promise<void> {
+    async createScore(req: Request, res: Response): Promise<void> {
         const scoreData: CreateScoreDTO = req.body;
 
         try {
@@ -15,8 +16,70 @@ export class ScoreController {
             res.status(500).json({ message: 'Error interno del servidor.' });
         }
     }
+    async updateScore(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params
+        const scoreId = parseInt(id);
+        const scoreData: CreateScoreDTO = req.body;
 
-    async updateCorte1(req: any, res: any): Promise<void> {
+        if (isNaN(scoreId)) {
+            console.error("Error: ID de score no válido.");
+            return res.status(400).json({ message: 'ID de score no válido.' });
+        }
+
+        try {
+            const updateScore = await scoreService.updatescoreById(scoreId, scoreData);
+            return res.status(201).json(updateScore);
+        } catch (error) {
+            console.error("Error al actualizar la nota:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async getAllScores(req: Request, res: Response): Promise<Response> {
+        try {
+            const scores = await scoreService.getAllScores();
+            return res.status(200).json(scores);
+        } catch (error) {
+            console.error("Error al obtener la nota:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async getScoresById(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params
+        const scoreId = parseInt(id);
+
+        if (isNaN(scoreId)) {
+            console.error("Error: ID de score no válido.");
+            return res.status(400).json({ message: 'ID de score no válido.' });
+        }
+        try {
+            const scores = await scoreService.getScoreById(scoreId);
+            return res.status(200).json(scores);
+        } catch (error) {
+            console.error("Error al obtener la nota:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async deleteScoresById(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params
+        const scoreId = parseInt(id);
+
+        if (isNaN(scoreId)) {
+            console.error("Error: ID de score no válido.");
+            return res.status(400).json({ message: 'ID de score no válido.' });
+        }
+        try {
+            const scores = await scoreService.deleteScoreById(scoreId);
+            return res.status(200).json(scores);
+        } catch (error) {
+            console.error("Error al obtener la nota:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async updateCorte1(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
         const { corte1 } = req.body;
 
@@ -33,7 +96,7 @@ export class ScoreController {
         }
     }
 
-    async updateCorte2(req: any, res: any): Promise<void> {
+    async updateCorte2(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
         const { corte2 } = req.body;
 
@@ -50,7 +113,7 @@ export class ScoreController {
         }
     }
 
-    async updateCorte3(req: any, res: any): Promise<void> {
+    async updateCorte3(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
         const { corte3 } = req.body;
 

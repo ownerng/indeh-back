@@ -13,5 +13,9 @@ routerScores.post('/', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), s
 routerScores.put('/corte1/:id', authenticateToken, authorizeRole([UserRole.PROFESOR]), scoreControllerInstance.updateCorte1);
 routerScores.put('/corte2/:id', authenticateToken, authorizeRole([UserRole.PROFESOR]), scoreControllerInstance.updateCorte2);
 routerScores.put('/corte3/:id', authenticateToken, authorizeRole([UserRole.PROFESOR]), scoreControllerInstance.updateCorte3);
+routerScores.get('/', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.getAllScores);
+routerScores.get('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.getScoresById);
+routerScores.put('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.updateScore);
+routerScores.delete('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.deleteScoresById);
 
 export default routerScores;

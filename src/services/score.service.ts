@@ -11,6 +11,37 @@ export class ScoreService {
         return await this.scoreRepository.save(newScore);
     }
 
+    async getAllScores(): Promise<PgScore[] | null> {
+        return await this.scoreRepository.find();
+
+    }
+    async getScoreById(id: number): Promise<PgScore | null> {
+        const score = await this.scoreRepository.findOneBy({id: id});
+        if(!score){
+            return null;
+        }
+        return score;
+        
+    }
+    async deleteScoreById(id: number): Promise<PgScore | null> {
+        const score = await this.scoreRepository.findOneBy({id: id});
+        if(!score){
+            return null;
+        }
+        return await this.scoreRepository.remove(score);
+        
+        
+    }
+    async updatescoreById(id: number, data: CreateScoreDTO): Promise<PgScore | null> {
+        const score = await this.scoreRepository.findOneBy({id: id});
+        if(!score){
+            return null;
+        }
+        score.id_student = data.id_student;
+        score.id_subject = data.id_subject;
+        return await this.scoreRepository.save(score);
+    }
+
     async getScoresByStudentId(studentId: number): Promise<PgScore[]> {
         const scores = await this.scoreRepository.find({ where: { id_student: studentId } });
         return scores;
