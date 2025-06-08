@@ -22,5 +22,29 @@ routerUser.get(
   authorizeRole([UserRole.EJECUTIVO]),
   userControllerInstance.listProfesores
 );
+routerUser.get(
+  '/',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  userControllerInstance.listAllUsers
+);
+routerUser.get(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  userControllerInstance.getUserById
+);
+routerUser.put(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  userControllerInstance.updateUserById
+);
+routerUser.delete(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  userControllerInstance.deleteUserById
+);
 
 export default routerUser;

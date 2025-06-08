@@ -14,8 +14,8 @@ export class UserController {
     }
 
     if (!Object.values(UserRole).includes(role as UserRole)) {
-        res.status(400).json({ message: 'Rol inválido.' });
-        return;
+      res.status(400).json({ message: 'Rol inválido.' });
+      return;
     }
 
     try {
@@ -38,6 +38,65 @@ export class UserController {
     } catch (error) {
       console.error("Error al listar profesores:", error);
       res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+  }
+
+  async listAllUsers(req: Request, res: Response): Promise<Response> {
+    try {
+      const users = await userService.getAllUsers();
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error al listar usuarios:", error);
+      return res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+  }
+
+  async updateUserById(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const userId = parseInt(id);
+    const { username, role } = req.body;
+    if (isNaN(userId)) {
+      console.error("Error: ID de score no válido.");
+      return res.status(400).json({ message: 'ID de score no válido.' });
+    }
+    try {
+      const users = await userService.updateUserById(userId, username, role);
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error al actualizar usuarios:", error);
+      return res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+  }
+
+  async getUserById(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const userId = parseInt(id);
+    if (isNaN(userId)) {
+      console.error("Error: ID de score no válido.");
+      return res.status(400).json({ message: 'ID de score no válido.' });
+    }
+    try {
+      const users = await userService.getUserById(userId);
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error al listar profesores:", error);
+      return res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+  }
+
+  async deleteUserById(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const userId = parseInt(id);
+    if (isNaN(userId)) {
+      console.error("Error: ID de score no válido.");
+      return res.status(400).json({ message: 'ID de score no válido.' });
+    }
+    try {
+      const users = await userService.deleteUserById(userId);
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error al listar profesores:", error);
+      return res.status(500).json({ message: 'Error interno del servidor.' });
     }
   }
 }

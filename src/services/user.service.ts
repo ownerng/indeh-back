@@ -21,11 +21,32 @@ export class UserService {
     });
 
     await this.userRepository.save(newUser);
-    
-    const { password, ...userWithoutPassword } = newUser; 
+
+    const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
-
+  async getAllUsers(): Promise<PgUser[] | null> {
+    return await this.userRepository.find()
+  }
+  async getUserById(id: number): Promise<Omit<PgUser, 'password'> | null> {
+    return await this.userRepository.findOneBy({ id: id });
+  }
+  async updateUserById(id: number, username: string, role: UserRole): Promise<Omit<PgUser, 'password'> | null> {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      return null;
+    }
+    user.username = username;
+    user.role = role;
+    return await this.userRepository.save(user);
+  }
+  async deleteUserById(id: number): Promise<PgUser | null> {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      return null;
+    }
+    return await this.userRepository.remove(user);
+  }
   async findUserByUsername(username: string): Promise<PgUser | null> {
     return this.userRepository.findOneBy({ username });
   }
@@ -48,11 +69,11 @@ export class UserService {
         console.log(`Usuario ejecutivo inicial '${adminUsername}' ya existe.`);
       }
     } catch (error) {
-        if (error instanceof Error && error.message.includes('El nombre de usuario ya existe.')) {
-             console.log(`Usuario ejecutivo inicial '${adminUsername}' ya existe (manejado por error de creación).`);
-        } else {
-            console.error("Error al crear el usuario admin inicial:", error);
-        }
+      if (error instanceof Error && error.message.includes('El nombre de usuario ya existe.')) {
+        console.log(`Usuario ejecutivo inicial '${adminUsername}' ya existe (manejado por error de creación).`);
+      } else {
+        console.error("Error al crear el usuario admin inicial:", error);
+      }
     }
   }
 }
