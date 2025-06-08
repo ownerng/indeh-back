@@ -11,7 +11,7 @@ export class PgStudent {
     @Column({ type: "enum", enum: ["CC", "TI"] })
     tipo_documento!: "CC" | "TI";
 
-    @Column({ type: "varchar", length: 50, unique: true })
+    @Column({ type: "varchar", length: 50})
     numero_documento!: string;
 
     @Column({ type: "date" })
@@ -35,7 +35,7 @@ export class PgStudent {
     @Column({ type: "enum", enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] })
     tipo_sangre!: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
 
-    @Column({ type: "varchar", length: 255, unique: true })
+    @Column({ type: "varchar", length: 255})
     email!: string;
 
     @Column({ type: "enum", enum: ["Activo", "Inactivo"], default: "Activo" })

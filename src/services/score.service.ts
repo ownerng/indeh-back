@@ -45,15 +45,16 @@ export class ScoreService {
         return await this.scoreRepository.save(score);
     }
 
-    async getScoresBySubjectId(subjectId: number[]): Promise<{ id: number; id_student: number }[]> {
+    async getScoresBySubjectId(subjectId: number[]): Promise<{ id: number; id_student: number; id_subject: number }[]> {
         const scores = await this.scoreRepository.find({
-            select: ["id", "id_student"],
+            select: ["id", "id_student", "id_subject"],
             where: { id_subject: In(subjectId) },
             order: { id_student: "ASC" },
         });
         return scores.map(score => ({
             id: score.id,
             id_student: score.id_student,
+            id_subject: score.id_subject
         }));
     }
     private toPgScore(score: CreateScoreDTO): PgScore {

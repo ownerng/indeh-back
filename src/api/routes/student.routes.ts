@@ -40,4 +40,31 @@ routerStudent.get(
   studentControllerInstance.getBoletinByStudentId
 )
 
+routerStudent.put(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.updateStudent
+)
+
+routerStudent.delete(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.deleteStudentById
+)
+
+routerStudent.get(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.getStudentById
+)
+
 export default routerStudent;

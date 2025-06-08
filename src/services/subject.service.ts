@@ -45,14 +45,17 @@ export class SubjectService {
         };
     }
 
-    async getSubjectsIdsByProfessorId(professorId: number): Promise<number[]> {
+    async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string}[]> {
         const subjects = await this.subjectRepository.find({
             where: {
                 profesor: { id: professorId },
             },
-            select: ["id"],
+            select: ["id", "nombre"],
         });
-        return subjects.map(subject => subject.id);
+        return subjects.map(subject => ({
+            id: subject.id,
+            nombre: subject.nombre
+        }));
     }
 
     private toPgSubject(subject: CreateSubjectDTO): PgSubject {

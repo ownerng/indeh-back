@@ -32,6 +32,56 @@ export class StudentController {
         }
     }
 
+    async getStudentById(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+        const studentId = parseInt(id);
+        
+        if (isNaN(studentId)) {
+            console.error("Error: ID de estudiante no válido.");
+            return res.status(400).json({ message: 'ID de estudiante no válido.' });
+        }
+        try {
+            const student = await studentService.getStudentById(studentId);
+            return res.status(200).json(student);
+        } catch (error) {
+            console.error("Error al obtener estudiante por ID:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async updateStudent(req: Request, res: Response): Promise<Response> {
+        const studentData = req.body;
+        const { id } = req.params;
+        const studentId = parseInt(id);
+         if (isNaN(studentId)) {
+            console.error("Error: ID de estudiante no válido.");
+            return res.status(400).json({ message: 'ID de estudiante no válido.' });
+        }
+        try {
+            const updateStudent = await studentService.updateStudents(studentId,studentData);
+            return res.status(200).json(updateStudent);
+        } catch (error) {
+            console.error("Error al actualizar estudiante:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async deleteStudentById(req: Request, res: Response): Promise<Response> {
+        const {id } = req.params;
+        const studentId = parseInt(id);
+         if (isNaN(studentId)) {
+            console.error("Error: ID de estudiante no válido.");
+            return res.status(400).json({ message: 'ID de estudiante no válido.' });
+        }
+        try {
+            const deleteStudent = await studentService.deleteStudentById(studentId);
+            return res.status(200).json(deleteStudent);
+        } catch (error) {
+            console.error("Error al eliminar estudiante:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
     async getStudentsByProfessorId(req: AuthenticatedRequest, res: Response): Promise<Response> {
         if (!req.user || req.user.role !== UserRole.PROFESOR) {
             return res.status(403).json({ message: 'Acceso denegado. Solo los profesores pueden acceder a esta información.' });

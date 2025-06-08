@@ -20,6 +20,67 @@ export class StudentService {
         return await this.studentRepository.find();
     }
 
+    async getStudentById(id: number): Promise<PgStudent | null> {
+        const student = await this.studentRepository.findOneBy({ id: id });
+        if (!student) {
+            return null;
+        }
+        return student;
+    }
+
+    async deleteStudentById(id: number): Promise<PgStudent | null> {
+        const student = await this.studentRepository.findOneBy({ id: id });
+        if (!student) {
+            return null;
+        }
+        return await this.studentRepository.remove(student);
+
+    }
+
+    async updateStudents(studentId: number, studentData: CreateStudentDTO): Promise<PgStudent | null> {
+        const student = await this.studentRepository.findOneBy({ id: studentId });
+        if (!student) {
+            return null;
+        }
+        student.nombres_apellidos = studentData.nombres_apellidos;
+        student.tipo_documento = studentData.tipo_documento;
+        student.numero_documento = studentData.numero_documento;
+        student.fecha_expedicion_documento = studentData.fecha_expedicion_documento;
+        student.fecha_nacimiento = studentData.fecha_nacimiento;
+        student.telefono = studentData.telefono;
+        student.sexo = studentData.sexo;
+        student.direccion = studentData.direccion;
+        student.eps = studentData.eps;
+        student.tipo_sangre = studentData.tipo_sangre;
+        student.email = studentData.email;
+        student.estado = studentData.estado;
+        student.fecha_creacion = studentData.fecha_creacion;
+        student.subsidio = studentData.subsidio;
+        student.categoria = studentData.categoria;
+        student.modalidad = studentData.modalidad;
+        student.grado = studentData.grado;
+        student.discapacidad = studentData.discapacidad;
+        student.fecha_modificacion = studentData.fecha_modificacion;
+        student.nombres_apellidos_acudiente = studentData.nombres_apellidos_acudiente;
+        student.numero_documento_acudiente = studentData.numero_documento_acudiente;
+        student.fecha_expedicion_documento_acudiente = studentData.fecha_expedicion_documento_acudiente;
+        student.telefono_acudiente = studentData.telefono_acudiente;
+        student.direccion_acudiente = studentData.direccion_acudiente;
+        student.contacto_emergencia = studentData.contacto_emergencia;
+        student.empresa_acudiente = studentData.empresa_acudiente;
+        student.nombres_apellidos_familiar1 = studentData.nombres_apellidos_familiar1;
+        student.numero_documento_familiar1 = studentData.numero_documento_familiar1;
+        student.telefono_familiar1 = studentData.telefono_familiar1;
+        student.parentesco_familiar1 = studentData.parentesco_familiar1;
+        student.empresa_familiar1 = studentData.empresa_familiar1;
+        student.nombres_apellidos_familiar2 = studentData.nombres_apellidos_familiar2;
+        student.numero_documento_familiar2 = studentData.numero_documento_familiar2;
+        student.telefono_familiar2 = studentData.telefono_familiar2;
+        student.parentesco_familiar2 = studentData.parentesco_familiar2;
+        student.empresa_familiar2 = studentData.empresa_familiar2;
+        return await this.studentRepository.save(student);
+    }
+
     async getBoletinByStudentId(studentId: number): Promise<boletinDTO | null> {
         const scores = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
@@ -346,26 +407,34 @@ export class StudentService {
 
         return boletin;
     }
-    async getStudentsByProfessorId(professorId: number): Promise<Array<{ id: number; nombres_apellidos: string; id_score: number }>> {
-        const subjectsId = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
+    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; students: { id: number; nombres_apellidos: string; id_score: number }[] }[]> {
+        const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
+        const subjectsId = subjects.map(subject => subject.id);
         const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
+        const result = await Promise.all(subjects.map(async subject => {
+            const subjectsScores = studentsScores.filter(score => score.id_subject === subject.id);
+            const studentIds = subjectsScores.map(score => score.id_student);
+            const students = await this.studentRepository.find({
+                where: { id: In(studentIds)},
+                select: ["id", "nombres_apellidos"]
+            });
 
-        const studentIds = studentsScores.map((s: any) => s.id_student);
+            const mappedStudents = subjectsScores.map(score => {
+                const student = students.find(s => s.id === score.id_student);
+                return student ? {
+                    id : student.id,
+                    nombres_apellidos: student.nombres_apellidos,
+                    id_score : score.id
+                } : null  
+            }).filter(Boolean) as {id: number; nombres_apellidos: string; id_score: number;}[];
 
-        const students = await this.studentRepository.find({
-            select: ["id", "nombres_apellidos"],
-            where: {
-                id: In(studentIds),
-            },
-        });
+            return {
+                nombre_asignatura: subject.nombre,
+                students: mappedStudents
+            };
+        }));
 
-        // Map students to include id_score from studentsScores
-        return studentsScores.map((score: any) => {
-            const student = students.find(s => s.id === score.id_student);
-            return student
-                ? { id: student.id, nombres_apellidos: student.nombres_apellidos, id_score: score.id }
-                : null;
-        }).filter(Boolean) as Array<{ id: number; nombres_apellidos: string; id_score: number }>;
+        return result;
     }
     private toPgStudent(student: CreateStudentDTO): PgStudent {
         const pgStudent = new PgStudent();
