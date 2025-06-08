@@ -45,6 +45,25 @@ export class SubjectService {
         };
     }
 
+    async deleteSubjectById(id: number): Promise<PgSubject | null > {
+        const subject = await this.subjectRepository.findOneBy({id: id});
+        if(!subject){
+            return null;
+        }
+        return await this.subjectRepository.remove(subject);
+    }
+
+    async updateSubjects(id: number, data: CreateSubjectDTO): Promise<PgSubject | null> {
+        const updateSubject = await this.subjectRepository.findOneBy({id: id});
+        if(!updateSubject){
+            return null;
+        }
+        updateSubject.nombre = data.nombre;
+        updateSubject.profesor = { id: data.id_profesor} as PgUser;
+
+        return await this.subjectRepository.save(updateSubject);
+    }
+
     async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string}[]> {
         const subjects = await this.subjectRepository.find({
             where: {

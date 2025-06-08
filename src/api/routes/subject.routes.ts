@@ -24,4 +24,25 @@ routerSubject.get(
   subjectControllerInstance.listSubjects
 );
 
+routerSubject.get(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  subjectControllerInstance.getSubjectById
+);
+
+routerSubject.put(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  subjectControllerInstance.updateSubject
+);
+
+routerSubject.delete(
+  '/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  subjectControllerInstance.deleteSubjectById
+)
+
 export default routerSubject;
