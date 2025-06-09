@@ -14,11 +14,20 @@ export class ScoreService {
     }
 
     async getAllScores(): Promise<PgScore[] | null> {
-        return await this.scoreRepository.find();
+        return await this.scoreRepository.find({relations: {
+            id_student: true,
+            id_subject: true
+        }});
 
     }
     async getScoreById(id: number): Promise<PgScore | null> {
-        const score = await this.scoreRepository.findOneBy({id: id});
+        const score = await this.scoreRepository.findOne({
+            where: {id: id},
+            relations:{
+                id_student: true,
+                id_subject: true,
+            }
+        });
         if(!score){
             return null;
         }

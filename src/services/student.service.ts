@@ -409,7 +409,7 @@ export class StudentService {
 
         return boletin;
     }
-    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; students: { id: number; nombres_apellidos: string; id_score: number }[] }[]> {
+    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; students: { id: number; nombres_apellidos: string;grado:string; id_score: number }[] }[]> {
         const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
         const subjectsId = subjects.map(subject => subject.id);
         const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
@@ -418,7 +418,7 @@ export class StudentService {
             const studentIds = subjectsScores.map(score => score.id_student);
             const students = await this.studentRepository.find({
                 where: { id: In(studentIds)},
-                select: ["id", "nombres_apellidos"]
+                select: ["id", "nombres_apellidos", "grado"]
             });
 
             const mappedStudents = subjectsScores.map(score => {
@@ -426,9 +426,10 @@ export class StudentService {
                 return student ? {
                     id : student.id,
                     nombres_apellidos: student.nombres_apellidos,
+                    grado: student.grado,
                     id_score : score.id
                 } : null  
-            }).filter(Boolean) as {id: number; nombres_apellidos: string; id_score: number;}[];
+            }).filter(Boolean) as {id: number; nombres_apellidos: string;grado:string; id_score: number;}[];
 
             return {
                 nombre_asignatura: subject.nombre,
