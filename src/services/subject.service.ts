@@ -70,6 +70,9 @@ export class SubjectService {
                 profesor: { id: professorId },
             },
             select: ["id", "nombre"],
+            relations: {
+                profesor: true
+            }
         });
         return subjects.map(subject => ({
             id: subject.id,

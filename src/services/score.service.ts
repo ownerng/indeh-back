@@ -2,6 +2,8 @@ import { In } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import { CreateScoreDTO } from "../dtos/createScoreDTO";
 import { PgScore } from "../entities/PgScore";
+import { PgStudent } from "../entities/PgStudent";
+import { PgSubject } from "../entities/PgSubject";
 
 export class ScoreService {
     private scoreRepository = AppDataSource.getRepository(PgScore);
@@ -37,13 +39,16 @@ export class ScoreService {
         if(!score){
             return null;
         }
-        score.id_student = data.id_student;
-        score.id_subject = data.id_subject;
+        score.id_student = {id : data.id_student} as PgStudent;
+        score.id_subject = {id: data.id_subject} as PgSubject;
         return await this.scoreRepository.save(score);
     }
 
     async getScoresByStudentId(studentId: number): Promise<PgScore[]> {
-        const scores = await this.scoreRepository.find({ where: { id_student: studentId } });
+        const scores = await this.scoreRepository.find({ where: { id_student: {id: studentId} }, relations:{
+            id_student: true,
+            id_subject: true,
+        } });
         return scores;
     }
 
@@ -79,19 +84,23 @@ export class ScoreService {
     async getScoresBySubjectId(subjectId: number[]): Promise<{ id: number; id_student: number; id_subject: number }[]> {
         const scores = await this.scoreRepository.find({
             select: ["id", "id_student", "id_subject"],
-            where: { id_subject: In(subjectId) },
-            order: { id_student: "ASC" },
+            where: { id_subject: {id: In(subjectId)} },
+            order: { id_student: {id: "ASC" }},
+            relations: {
+                id_student: true,
+                id_subject : true
+            }
         });
         return scores.map(score => ({
             id: score.id,
-            id_student: score.id_student,
-            id_subject: score.id_subject
+            id_student: score.id_student.id,
+            id_subject: score.id_subject.id
         }));
     }
     private toPgScore(score: CreateScoreDTO): PgScore {
         const pgScore = new PgScore();
-        pgScore.id_student = score.id_student;
-        pgScore.id_subject = score.id_subject;
+        pgScore.id_student = {id: score.id_student} as PgStudent;
+        pgScore.id_subject = {id: score.id_subject} as PgSubject;
         pgScore.corte1 = null;
         pgScore.corte2 = null;
         pgScore.corte3 = null;

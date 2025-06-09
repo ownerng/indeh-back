@@ -6,6 +6,8 @@ import { ScoreService } from "./score.service";
 import { SubjectService } from "./subject.service";
 import { boletinDTO } from "../dtos/boletinDTO";
 import { ciclo, porcentual, desem } from "../utils/utils";
+import { PgSubject } from "../entities/PgSubject";
+import { PgScore } from "../entities/PgScore";
 
 export class StudentService {
     private studentRepository = AppDataSource.getRepository(PgStudent);
@@ -82,7 +84,7 @@ export class StudentService {
     }
 
     async getBoletinByStudentId(studentId: number): Promise<boletinDTO | null> {
-        const scores = await new ScoreService().getScoresByStudentId(studentId);
+        const scores:PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
             return null;
         }
@@ -213,7 +215,7 @@ export class StudentService {
 
         // Procesa cada score y llena el boletin
         for (const score of scores) {
-            const subject = await new SubjectService().getSubjectById(score.id_subject);
+            const subject = await new SubjectService().getSubjectById( score.id_subject.id);
             if (!subject) continue;
 
             const nombre = subject.nombre.toLowerCase();

@@ -13,7 +13,9 @@ export class PgSubject {
     @CreateDateColumn()
     fecha_creacion!: Date;
 
-    @ManyToOne(() => PgUser)
+    @ManyToOne(() => PgUser, (user) => user.id, {
+        onDelete:"CASCADE"
+    })
     @JoinColumn({ name: "id_profesor" })
     profesor!: PgUser;
 }

@@ -159,7 +159,6 @@ export class StudentController {
             } finally {
                 if (browser) {
                     await browser.close();
-                    console.log('Navegador Puppeteer cerrado.');
                 }
             }
 

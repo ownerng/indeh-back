@@ -1,15 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { PgSubject } from "./PgSubject";
+import { PgStudent } from "./PgStudent";
 
 @Entity("scores")
 export class PgScore {
     @PrimaryGeneratedColumn("increment")
     id!: number;
 
-    @Column({ type: "int" })
-    id_student!: number;
+    @ManyToOne(() => PgStudent, (user) => user.id, {
+        onDelete: "CASCADE"
+    })
+    @JoinColumn({ name: "id_student" })
+    id_student!: PgStudent;
 
-    @Column({ type: "int" })
-    id_subject!: number;
+    @ManyToOne(() => PgSubject, (user) => user.id, {
+        onDelete: "CASCADE"
+    })
+    @JoinColumn({ name: "id_subject" })
+    id_subject!: PgSubject;
 
     @Column({ type: "decimal", precision: 3, scale: 1, nullable: true })
     corte1!: number | null;
