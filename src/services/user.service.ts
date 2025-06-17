@@ -31,15 +31,24 @@ export class UserService {
   async getUserById(id: number): Promise<Omit<PgUser, 'password'> | null> {
     return await this.userRepository.findOneBy({ id: id });
   }
-  async updateUserById(id: number, username: string, role: UserRole, password: string): Promise<Omit<PgUser, 'password'> | null> {
+   async updateUserById(id: number, username: string, role: UserRole, passwordInput: string): Promise<Omit<PgUser, 'password'> | null> {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) {
       return null;
     }
+
     user.username = username;
     user.role = role;
-    user.password = password;
-    return await this.userRepository.save(user);
+
+    // Hash the new password before saving it
+    if (passwordInput) { // Check if a new password was provided
+      user.password = await bcrypt.hash(passwordInput, 10); // 10 salt rounds
+    }
+    
+    await this.userRepository.save(user);
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
   }
   async deleteUserById(id: number): Promise<PgUser | null> {
     const user = await this.userRepository.findOneBy({ id: id });
