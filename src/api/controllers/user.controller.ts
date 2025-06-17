@@ -54,13 +54,13 @@ export class UserController {
   async updateUserById(req: Request, res: Response): Promise<Response> {
     const { id } = req.params;
     const userId = parseInt(id);
-    const { username, role } = req.body;
+    const { username, role, password } = req.body;
     if (isNaN(userId)) {
       console.error("Error: ID de score no válido.");
       return res.status(400).json({ message: 'ID de score no válido.' });
     }
     try {
-      const users = await userService.updateUserById(userId, username, role);
+      const users = await userService.updateUserById(userId, username, role, password);
       return res.status(200).json(users);
     } catch (error) {
       console.error("Error al actualizar usuarios:", error);
