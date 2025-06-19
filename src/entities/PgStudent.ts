@@ -1,4 +1,5 @@
 import { Entity, Column, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Jornada } from "./Jornada";
 
 @Entity("students")
 export class PgStudent {
@@ -11,11 +12,11 @@ export class PgStudent {
     @Column({ type: "enum", enum: ["CC", "TI"] })
     tipo_documento!: "CC" | "TI";
 
-    @Column({ type: "varchar", length: 50})
+    @Column({ type: "varchar", length: 50 })
     numero_documento!: string;
 
-    @Column({ type: "date" })
-    fecha_expedicion_documento!: Date;
+    @Column({ type: "varchar" })
+    expedicion_documento!: string;
 
     @Column({ type: "date" })
     fecha_nacimiento!: Date;
@@ -35,7 +36,7 @@ export class PgStudent {
     @Column({ type: "enum", enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] })
     tipo_sangre!: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
 
-    @Column({ type: "varchar", length: 255})
+    @Column({ type: "varchar", length: 255 })
     email!: string;
 
     @Column({ type: "enum", enum: ["Activo", "Inactivo"], default: "Activo" })
@@ -45,19 +46,19 @@ export class PgStudent {
     fecha_creacion!: Date;
 
     @Column({ type: "varchar", length: 255, nullable: true })
-    subsidio!: string;
+    subsidio!: string | null;
 
     @Column({ type: "varchar", length: 255, nullable: true })
-    categoria!: string;
+    categoria!: string | null;
 
-    @Column({ type: "varchar", length: 255, nullable: true })
-    modalidad!: string;
+    @Column({ type: "enum", enum: Jornada })
+    jornada!: Jornada;
 
-    @Column({ type: "varchar", length: 255, nullable: true })
+    @Column({ type: "varchar", length: 255 })
     grado!: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
-    discapacidad!: string;
+    discapacidad!: string | null;
 
     @UpdateDateColumn()
     fecha_modificacion!: Date;
@@ -68,8 +69,8 @@ export class PgStudent {
     @Column({ type: "varchar", length: 50 })
     numero_documento_acudiente!: string;
 
-    @Column({ type: "date" , nullable: true})
-    fecha_expedicion_documento_acudiente!: Date;
+    @Column({ type: "varchar", nullable: true })
+    expedicion_documento_acudiente!: string | null;
 
     @Column({ type: "varchar", length: 20 })
     telefono_acudiente!: string;
@@ -78,10 +79,10 @@ export class PgStudent {
     direccion_acudiente!: string;
 
     @Column({ type: "varchar", length: 255 })
-    contacto_emergencia!: string;
+    email_acudiente!: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
-    empresa_acudiente!: string;
+    empresa_acudiente!: string | null;
 
     @Column({ type: "varchar", length: 255, nullable: true })
     nombres_apellidos_familiar1!: string | null;

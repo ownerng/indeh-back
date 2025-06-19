@@ -1,5 +1,6 @@
 import { Entity, Column, CreateDateColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
 import { PgUser } from "./PgUser";
+import { Jornada } from "./Jornada";
 
 
 @Entity("subjects")
@@ -10,12 +11,19 @@ export class PgSubject {
     @Column({ type: "varchar", length: 255 })
     nombre!: string;
 
+    @Column({
+        type: "enum",
+        enum: Jornada
+    })
+    jornada!: Jornada;
+
     @CreateDateColumn()
     fecha_creacion!: Date;
 
     @ManyToOne(() => PgUser, (user) => user.id, {
-        onDelete:"CASCADE"
+        onDelete: "CASCADE",
+        nullable: true
     })
     @JoinColumn({ name: "id_profesor" })
-    profesor!: PgUser;
+    profesor!: PgUser | null;
 }

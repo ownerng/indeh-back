@@ -15,7 +15,20 @@ export class StudentService {
 
     async createStudent(studentData: CreateStudentDTO): Promise<PgStudent> {
         const student = this.studentRepository.create(this.toPgStudent(studentData));
-        return await this.studentRepository.save(student);
+        const savedStudent = await this.studentRepository.save(student);
+
+        // Después de crear el estudiante, asignar las materias según la jornada
+        const allSubjects = await new SubjectService().getAllSubjects();
+        const subjectsForJornada = allSubjects.filter(s => s.jornada === savedStudent.jornada);
+
+        for (const subject of subjectsForJornada) {
+            await new ScoreService().createScore({
+                id_student: savedStudent.id,
+                id_subject: subject.id
+            });
+        }
+
+        return savedStudent;
     }
 
     async getAllStudents(): Promise<PgStudent[]> {
@@ -47,7 +60,7 @@ export class StudentService {
         student.nombres_apellidos = studentData.nombres_apellidos;
         student.tipo_documento = studentData.tipo_documento;
         student.numero_documento = studentData.numero_documento;
-        student.fecha_expedicion_documento = studentData.fecha_expedicion_documento;
+        student.expedicion_documento = studentData.expedicion_documento;
         student.fecha_nacimiento = studentData.fecha_nacimiento;
         student.telefono = studentData.telefono;
         student.sexo = studentData.sexo;
@@ -59,16 +72,16 @@ export class StudentService {
         student.fecha_creacion = studentData.fecha_creacion;
         student.subsidio = studentData.subsidio;
         student.categoria = studentData.categoria;
-        student.modalidad = studentData.modalidad;
+        student.jornada = studentData.jornada;
         student.grado = studentData.grado;
         student.discapacidad = studentData.discapacidad;
         student.fecha_modificacion = studentData.fecha_modificacion;
         student.nombres_apellidos_acudiente = studentData.nombres_apellidos_acudiente;
         student.numero_documento_acudiente = studentData.numero_documento_acudiente;
-        student.fecha_expedicion_documento_acudiente = studentData.fecha_expedicion_documento_acudiente;
+        student.expedicion_documento_acudiente = studentData.expedicion_documento_acudiente;
         student.telefono_acudiente = studentData.telefono_acudiente;
         student.direccion_acudiente = studentData.direccion_acudiente;
-        student.contacto_emergencia = studentData.contacto_emergencia;
+        student.email_acudiente = studentData.email_acudiente;
         student.empresa_acudiente = studentData.empresa_acudiente;
         student.nombres_apellidos_familiar1 = studentData.nombres_apellidos_familiar1;
         student.numero_documento_familiar1 = studentData.numero_documento_familiar1;
@@ -97,7 +110,7 @@ export class StudentService {
             nombres_apellidos: student.nombres_apellidos,
             grado: student.grado,
             ciclo: ciclo(student.grado),
-            jornada: student.modalidad,
+            jornada: student.jornada,
             castellano_corte1: 0,
             castellano_corte2: 0,
             castellano_corte3: 0,
@@ -300,18 +313,18 @@ export class StudentService {
                 boletin.emprendimiento_desem3 = desem(score.corte3 ?? 0);
 
             } else if (nombre === "filosofia") {
-                boletin.emprendimiento_corte1 = score.corte1 ?? 0;
-                boletin.emprendimiento_corte2 = score.corte2 ?? 0;
-                boletin.emprendimiento_corte3 = score.corte3 ?? 0;
-                boletin.emprendimiento_def = score.notadefinitiva ?? 0;
+                boletin.filosofia_corte1 = score.corte1 ?? 0;
+                boletin.filosofia_corte2 = score.corte2 ?? 0;
+                boletin.filosofia_corte3 = score.corte3 ?? 0;
+                boletin.filosofia_def = score.notadefinitiva ?? 0;
 
-                boletin.emprendimiento_porcentual1 = porcentual(score.corte1 ?? 0, 0.3);
-                boletin.emprendimiento_porcentual2 = porcentual(score.corte2 ?? 0, 0.3);
-                boletin.emprendimiento_porcentual3 = porcentual(score.corte3 ?? 0, 0.4);
+                boletin.filosofia_porcentual1 = porcentual(score.corte1 ?? 0, 0.3);
+                boletin.filosofia_porcentual2 = porcentual(score.corte2 ?? 0, 0.3);
+                boletin.filosofia_porcentual3 = porcentual(score.corte3 ?? 0, 0.4);
 
-                boletin.emprendimiento_desem1 = desem(score.corte1 ?? 0);
-                boletin.emprendimiento_desem2 = desem(score.corte2 ?? 0);
-                boletin.emprendimiento_desem3 = desem(score.corte3 ?? 0);
+                boletin.filosofia_desem1 = desem(score.corte1 ?? 0);
+                boletin.filosofia_desem2 = desem(score.corte2 ?? 0);
+                boletin.filosofia_desem3 = desem(score.corte3 ?? 0);
             }
             else if (nombre === "etica y religion" || nombre === "etica_religion") {
                 boletin.etica_religion_corte1 = score.corte1 ?? 0;
@@ -409,7 +422,7 @@ export class StudentService {
 
         return boletin;
     }
-    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; students: { id: number; nombres_apellidos: string;grado:string; id_score: number }[] }[]> {
+    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; jornada: string; students: { id: number; nombres_apellidos: string; grado: string; id_score: number }[] }[]> {
         const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
         const subjectsId = subjects.map(subject => subject.id);
         const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
@@ -429,10 +442,11 @@ export class StudentService {
                     grado: student.grado,
                     id_score : score.id
                 } : null  
-            }).filter(Boolean) as {id: number; nombres_apellidos: string;grado:string; id_score: number;}[];
+            }).filter(Boolean) as {id: number; nombres_apellidos: string; grado: string; id_score: number;}[];
 
             return {
                 nombre_asignatura: subject.nombre,
+                jornada: subject.jornada,
                 students: mappedStudents
             };
         }));
@@ -444,7 +458,7 @@ export class StudentService {
         pgStudent.nombres_apellidos = student.nombres_apellidos;
         pgStudent.tipo_documento = student.tipo_documento;
         pgStudent.numero_documento = student.numero_documento;
-        pgStudent.fecha_expedicion_documento = student.fecha_expedicion_documento;
+        pgStudent.expedicion_documento = student.expedicion_documento;
         pgStudent.fecha_nacimiento = student.fecha_nacimiento;
         pgStudent.telefono = student.telefono;
         pgStudent.sexo = student.sexo;
@@ -456,16 +470,16 @@ export class StudentService {
         pgStudent.fecha_creacion = student.fecha_creacion;
         pgStudent.subsidio = student.subsidio;
         pgStudent.categoria = student.categoria;
-        pgStudent.modalidad = student.modalidad;
+        pgStudent.jornada = student.jornada;
         pgStudent.grado = student.grado;
         pgStudent.discapacidad = student.discapacidad;
         pgStudent.fecha_modificacion = student.fecha_modificacion;
         pgStudent.nombres_apellidos_acudiente = student.nombres_apellidos_acudiente;
         pgStudent.numero_documento_acudiente = student.numero_documento_acudiente;
-        pgStudent.fecha_expedicion_documento_acudiente = student.fecha_expedicion_documento_acudiente;
+        pgStudent.expedicion_documento_acudiente = student.expedicion_documento_acudiente;
         pgStudent.telefono_acudiente = student.telefono_acudiente;
         pgStudent.direccion_acudiente = student.direccion_acudiente;
-        pgStudent.contacto_emergencia = student.contacto_emergencia;
+        pgStudent.email_acudiente = student.email_acudiente;
         pgStudent.empresa_acudiente = student.empresa_acudiente;
         pgStudent.nombres_apellidos_familiar1 = student.nombres_apellidos_familiar1;
         pgStudent.numero_documento_familiar1 = student.numero_documento_familiar1;

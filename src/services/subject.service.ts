@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/data-source";
 import { CreateSubjectDTO } from "../dtos/createSubjectDTO";
 import { PgSubject } from "../entities/PgSubject";
 import { PgUser } from "../entities/PgUser";
+import { Jornada } from "../entities/Jornada";
 
 export class SubjectService {
     private subjectRepository = AppDataSource.getRepository(PgSubject);
@@ -12,7 +13,7 @@ export class SubjectService {
         return newSubject;
     }
 
-    async getAllSubjects(): Promise<(Omit<PgSubject, 'profesor'> & { profesor: Omit<PgUser, 'password'> })[]> {
+    async getAllSubjects(): Promise<(Omit<PgSubject, 'profesor'> & { profesor?: Omit<PgUser, 'password'> })[]> {
         const subjects = await this.subjectRepository.find({
             relations: {
                 profesor: true,
@@ -20,15 +21,20 @@ export class SubjectService {
         });
 
         return subjects.map(subject => {
-            const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
-            return {
-                ...subject,
-                profesor: profesorWithoutPassword,
-            };
+            if (subject.profesor) {
+                const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
+                return {
+                    ...subject,
+                    profesor: profesorWithoutPassword,
+                };
+            } else {
+                const { profesor, ...subjectWithoutProfesor } = subject;
+                return subjectWithoutProfesor;
+            }
         });
     }
 
-    async getSubjectById(id: number): Promise<(Omit<PgSubject, 'profesor'> & { profesor: Omit<PgUser, 'password'> }) | null> {
+    async getSubjectById(id: number): Promise<(Omit<PgSubject, 'profesor'> & { profesor: Omit<PgUser, 'password'> | null }) | null> {
         const subject = await this.subjectRepository.findOne({
             where: { id },
             relations: { profesor: true },
@@ -38,11 +44,18 @@ export class SubjectService {
             return null;
         }
 
-        const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
-        return {
-            ...subject,
-            profesor: profesorWithoutPassword,
-        };
+        if (subject.profesor) {
+            const { password, ...profesorWithoutPassword } = subject.profesor as PgUser;
+            return {
+                ...subject,
+                profesor: profesorWithoutPassword,
+            };
+        } else {
+            return {
+                ...subject,
+                profesor: null,
+            };
+        }
     }
 
     async deleteSubjectById(id: number): Promise<PgSubject | null > {
@@ -64,20 +77,69 @@ export class SubjectService {
         return await this.subjectRepository.save(updateSubject);
     }
 
-    async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string}[]> {
+    async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string; jornada: Jornada}[]> {
         const subjects = await this.subjectRepository.find({
             where: {
                 profesor: { id: professorId },
             },
-            select: ["id", "nombre"],
+            select: ["id", "nombre", "jornada"],
             relations: {
                 profesor: true
             }
         });
         return subjects.map(subject => ({
             id: subject.id,
-            nombre: subject.nombre
+            nombre: subject.nombre,
+            jornada: subject.jornada
         }));
+    }
+
+    /**
+     * Inicializa las materias por jornada solo si no existen previamente.
+     * Similar a createInitialAdminUser en user.service.ts
+     */
+    async initializeSubjects(): Promise<void> {
+        const subjectNames = [
+            "castellano",
+            "ingles",
+            "quimica",
+            "fisica",
+            "matematicas",
+            "emprendimiento",
+            "filosofia",
+            "etica y religion",
+            "informatica",
+            "educacion fisica",
+            "comportamiento"
+        ];
+
+        const jornadas = Object.values(Jornada);
+
+        try {
+            const existing = await this.subjectRepository.count();
+            if (existing > 0) {
+                console.log("Las materias iniciales ya existen.");
+                return;
+            }
+
+            const subjectsToCreate: PgSubject[] = [];
+
+            for (const jornada of jornadas) {
+                for (const nombre of subjectNames) {
+                    const subject = new PgSubject();
+                    subject.nombre = nombre;
+                    subject.jornada = jornada as Jornada;
+                    subject.profesor = null;
+                    subject.fecha_creacion = new Date();
+                    subjectsToCreate.push(subject);
+                }
+            }
+
+            await this.subjectRepository.save(subjectsToCreate);
+            console.log("Materias iniciales creadas correctamente.");
+        } catch (error) {
+            console.error("Error al inicializar las materias:", error);
+        }
     }
 
     private toPgSubject(subject: CreateSubjectDTO): PgSubject {

@@ -26,7 +26,7 @@ export class AuthService {
       role: user.role,
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '48h' });
 
     return {
       token,

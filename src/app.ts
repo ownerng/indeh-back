@@ -8,14 +8,15 @@ import { AppDataSource } from './config/data-source';
 import routerStudent from './api/routes/student.routes';
 import routerSubject from './api/routes/subject.routes';
 import routerScores from './api/routes/score.routes';
+import { SubjectService } from './services/subject.service';
 
 dotenv.config();
 
 const app: Application = express();
 const port = process.env.SERVER_PORT || 3000;
 const corsOptions = {
-  origin: 'https://notas.indeh.com.co', // <--- Especifica el origen de tu frontend
-  //origin: 'http://localhost:5173',
+  // origin: 'https://notas.indeh.com.co', // <--- Especifica el origen de tu frontend
+  origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // <--- Métodos permitidos
   allowedHeaders: ['Content-Type', 'Authorization'], // <--- Encabezados permitidos (importante para tokens)
   credentials: true // Si necesitas manejar cookies o sesiones (no aplica directamente para JWT en este caso, pero es buena práctica)
@@ -47,6 +48,8 @@ export const startServer = async () => {
 
     const appUserService = new UserService(); // Usar el alias si es necesario
     await appUserService.createInitialAdminUser();
+    const appSubjectService = new SubjectService();
+    await appSubjectService.initializeSubjects();
 
     app.listen(port, () => {
       console.log(`Servidor corriendo en http://localhost:${port}`);
