@@ -117,23 +117,31 @@ export class SubjectService {
         const jornadas = Object.values(Jornada);
 
         try {
-            const existing = await this.subjectRepository.count();
-            if (existing > 0) {
-                console.log("Las materias iniciales ya existen.");
-                return;
-            }
+            // Traer todas las materias existentes
+            const existingSubjects = await this.subjectRepository.find();
+            const existingSet = new Set(
+                existingSubjects.map(s => `${s.nombre.toLowerCase()}-${s.jornada}`)
+            );
 
             const subjectsToCreate: PgSubject[] = [];
 
             for (const jornada of jornadas) {
                 for (const nombre of subjectNames) {
-                    const subject = new PgSubject();
-                    subject.nombre = nombre;
-                    subject.jornada = jornada as Jornada;
-                    subject.profesor = null;
-                    subject.fecha_creacion = new Date();
-                    subjectsToCreate.push(subject);
+                    const key = `${nombre.toLowerCase()}-${jornada}`;
+                    if (!existingSet.has(key)) {
+                        const subject = new PgSubject();
+                        subject.nombre = nombre;
+                        subject.jornada = jornada as Jornada;
+                        subject.profesor = null;
+                        subject.fecha_creacion = new Date();
+                        subjectsToCreate.push(subject);
+                    }
                 }
+            }
+
+            if (subjectsToCreate.length === 0) {
+                console.log("Las materias iniciales ya existen.");
+                return;
             }
 
             await this.subjectRepository.save(subjectsToCreate);
