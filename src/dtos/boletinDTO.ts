@@ -16,6 +16,17 @@ export interface boletinDTO {
     castellano_porcentual3: number;
     castellano_def: number;
 
+    sociales_corte1: number;
+    sociales_corte2: number;
+    sociales_corte3: number;
+    sociales_desem1: string;
+    sociales_desem2: string
+    sociales_desem3: string;
+    sociales_porcentual1: number;
+    sociales_porcentual2: number;
+    sociales_porcentual3: number;
+    sociales_def: number;
+
     ingles_corte1: number;
     ingles_corte2: number;
     ingles_corte3: number;

@@ -93,6 +93,16 @@ export class StudentService {
         student.telefono_familiar2 = studentData.telefono_familiar2;
         student.parentesco_familiar2 = studentData.parentesco_familiar2;
         student.empresa_familiar2 = studentData.empresa_familiar2;
+
+        const allSubjects = await new SubjectService().getAllSubjects();
+        const subjectsForJornada = allSubjects.filter(s => s.jornada === student.jornada);
+
+        for (const subject of subjectsForJornada) {
+            await new ScoreService().createScore({
+                id_student: student.id,
+                id_subject: subject.id
+            });
+        }
         return await this.studentRepository.save(student);
     }
 
@@ -121,6 +131,16 @@ export class StudentService {
             castellano_porcentual2: 0,
             castellano_porcentual3: 0,
             castellano_def: 0,
+            sociales_corte1: 0,
+            sociales_corte2: 0,
+            sociales_corte3: 0,
+            sociales_desem1: '',
+            sociales_desem2: '',
+            sociales_desem3: '',
+            sociales_porcentual1: 0,
+            sociales_porcentual2: 0,
+            sociales_porcentual3: 0,
+            sociales_def: 0,
             ingles_corte1: 0,
             ingles_corte2: 0,
             ingles_corte3: 0,
@@ -246,7 +266,20 @@ export class StudentService {
                 boletin.castellano_desem1 = desem(score.corte1 ?? 0);
                 boletin.castellano_desem2 = desem(score.corte2 ?? 0);
                 boletin.castellano_desem3 = desem(score.corte3 ?? 0);
-            } else if (nombre === "ingles") {
+            } else if (nombre === "sociales") {
+                boletin.sociales_corte1 = score.corte1 ?? 0;
+                boletin.sociales_corte2 = score.corte2 ?? 0;
+                boletin.sociales_corte3 = score.corte3 ?? 0;
+                boletin.sociales_def = score.notadefinitiva ?? 0;
+
+                boletin.sociales_porcentual1 = porcentual(score.corte1 ?? 0, 0.3);
+                boletin.sociales_porcentual2 = porcentual(score.corte2 ?? 0, 0.3);
+                boletin.sociales_porcentual3 = porcentual(score.corte3 ?? 0, 0.4);
+
+                boletin.sociales_desem1 = desem(score.corte1 ?? 0);
+                boletin.sociales_desem2 = desem(score.corte2 ?? 0);
+                boletin.sociales_desem3 = desem(score.corte3 ?? 0);
+            }else if (nombre === "ingles") {
                 boletin.ingles_corte1 = score.corte1 ?? 0;
                 boletin.ingles_corte2 = score.corte2 ?? 0;
                 boletin.ingles_corte3 = score.corte3 ?? 0;

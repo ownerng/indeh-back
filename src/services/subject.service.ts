@@ -104,6 +104,7 @@ export class SubjectService {
             "ingles",
             "quimica",
             "fisica",
+            "sociales",
             "matematicas",
             "emprendimiento",
             "filosofia",

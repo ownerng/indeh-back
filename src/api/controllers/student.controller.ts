@@ -114,7 +114,10 @@ export class StudentController {
             }
 
             // Carga la plantilla HTML
-            const templatePath = join(__dirname, '../../templates/boletin.html');
+            const templateFile = ['6', '7', '8', '9'].includes(boletin.grado)
+                ? 'boletin6.html'
+                : 'boletin.html';
+            const templatePath = join(__dirname, '../../templates', templateFile);
             let htmlTemplate: string;
             try {
                 htmlTemplate = readFileSync(templatePath, 'utf-8');
