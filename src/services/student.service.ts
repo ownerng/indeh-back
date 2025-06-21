@@ -706,4 +706,69 @@ export class StudentService {
         pgStudent.empresa_familiar2 = student.empresa_familiar2;
         return pgStudent;
     }
+
+    async updateScoresForStudents(studentIds: number[]): Promise<void> {
+        const scoreService = new ScoreService();
+        const subjectService = new SubjectService();
+        const allSubjects = await subjectService.getAllSubjects();
+
+        for (const studentId of studentIds) {
+            const student = await this.studentRepository.findOneBy({ id: studentId });
+            if (!student) continue;
+
+            // Filtrar materias según la jornada y grado del estudiante
+            const subjectsForJornada = allSubjects.filter(s => s.jornada === student.jornada);
+            const gradoNum = parseInt(student.grado);
+            let filteredSubjects: typeof subjectsForJornada = [];
+
+            if (!isNaN(gradoNum)) {
+                if (gradoNum >= 1 && gradoNum <= 9) {
+                    filteredSubjects = subjectsForJornada.filter(
+                        s => s.nombre.toLowerCase() !== "filosofia" && s.nombre.toLowerCase() !== "fisica"
+                    );
+                } else if (gradoNum >= 10 && gradoNum <= 11) {
+                    filteredSubjects = subjectsForJornada.filter(
+                        s => s.nombre.toLowerCase() !== "sociales"
+                    );
+                } else {
+                    filteredSubjects = subjectsForJornada;
+                }
+            } else {
+                filteredSubjects = subjectsForJornada;
+            }
+
+            // Obtener los scores actuales del estudiante
+            const currentScores = await scoreService.getScoresByStudentId(student.id);
+
+            // Mapear materias actuales por nombre (para comparar)
+            const currentScoresBySubjectName = new Map(
+                currentScores.map(score => [score.id_subject.nombre.toLowerCase(), score])
+            );
+
+            for (const subject of filteredSubjects) {
+                const subjectName = subject.nombre.toLowerCase();
+                const existingScore = currentScoresBySubjectName.get(subjectName);
+
+                if (existingScore) {
+                    // Actualiza el id_subject del score existente a la materia de la nueva jornada
+                    await scoreService.updatescoreById(existingScore.id, {
+                        id_student: student.id,
+                        id_subject: subject.id
+                    });
+                    currentScoresBySubjectName.delete(subjectName);
+                } else {
+                    // Si no existe score para esta materia, crea uno nuevo
+                    await scoreService.createScore({
+                        id_student: student.id,
+                        id_subject: subject.id
+                    });
+                }
+            }
+
+            // Elimina scores de materias que ya no están en la nueva jornada y grado
+            for (const score of currentScoresBySubjectName.values()) {
+                await scoreService.deleteScoreById(score.id);
+            }
+        }
+    }
 }

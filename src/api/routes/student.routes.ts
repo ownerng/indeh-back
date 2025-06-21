@@ -42,6 +42,15 @@ routerStudent.post(
   studentControllerInstance.getBoletinByStudentId
 )
 
+routerStudent.post(
+  '/update/scores/all',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.updateScoresForStudents
+)
+
 routerStudent.put(
   '/:id',
   authenticateToken,
