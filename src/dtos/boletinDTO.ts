@@ -30,6 +30,19 @@ export interface boletinDTO {
     sociales_def: number;
     sociales_obs: string;
 
+    biologia_corte1: number;
+    biologia_corte2: number;
+    biologia_corte3: number;
+    biologia_desem1: string;
+    biologia_desem2: string
+    biologia_desem3: string;
+    biologia_porcentual1: number;
+    biologia_porcentual2: number;
+    biologia_porcentual3: number;
+    biologia_def: number;
+    biologia_obs: string;
+
+
     ingles_corte1: number;
     ingles_corte2: number;
     ingles_corte3: number;

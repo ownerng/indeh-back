@@ -208,6 +208,17 @@ export class StudentService {
             castellano_porcentual3: 0,
             castellano_def: 0,
             castellano_obs: '',
+            biologia_corte1: 0,
+            biologia_corte2: 0,
+            biologia_corte3: 0,
+            biologia_desem1: '',
+            biologia_desem2: '',
+            biologia_desem3: '',
+            biologia_porcentual1: 0,
+            biologia_porcentual2: 0,
+            biologia_porcentual3: 0,
+            biologia_def: 0,
+            biologia_obs: '',
             sociales_corte1: 0,
             sociales_corte2: 0,
             sociales_corte3: 0,
@@ -356,6 +367,21 @@ export class StudentService {
                 boletin.castellano_desem2 = desem(score.corte2 ?? 0);
                 boletin.castellano_desem3 = desem(score.corte3 ?? 0);
                 boletin.castellano_obs = obs(score.notadefinitiva ?? 0);
+            } else if (nombre === "biologia") {
+                boletin.biologia_corte1 = score.corte1 ?? 0;
+                boletin.biologia_corte2 = score.corte2 ?? 0;
+                boletin.biologia_corte3 = score.corte3 ?? 0;
+                boletin.biologia_def = score.notadefinitiva ?? 0;
+
+                boletin.biologia_porcentual1 = porcentual(score.corte1 ?? 0, 0.3);
+                boletin.biologia_porcentual2 = porcentual(score.corte2 ?? 0, 0.3);
+                boletin.biologia_porcentual3 = porcentual(score.corte3 ?? 0, 0.4);
+
+                boletin.biologia_desem1 = desem(score.corte1 ?? 0);
+                boletin.biologia_desem2 = desem(score.corte2 ?? 0);
+                boletin.biologia_desem3 = desem(score.corte3 ?? 0);
+
+                boletin.sociales_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "sociales") {
                 boletin.sociales_corte1 = score.corte1 ?? 0;
                 boletin.sociales_corte2 = score.corte2 ?? 0;
@@ -527,7 +553,7 @@ export class StudentService {
         if (!isNaN(gradoNum) && gradoNum < 9) {
             // Menor a 9: quitar fisica y cambiar filosofia por sociales
             materiasParaPromedio = [
-                'castellano', 'ingles', 'quimica', 'sociales', 'matematicas',
+                'castellano', 'ingles', 'quimica', 'sociales', 'biologia','matematicas',
                 'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
             ];
         } else {
@@ -618,11 +644,11 @@ export class StudentService {
             const studentIds = subjectsScores.map(score => score.id_student);
             const students = await this.studentRepository.find({
                 where: { id: In(studentIds) },
-                select: ["id", "nombres_apellidos", "grado"]
+                select: ["id", "nombres_apellidos", "grado", "estado"]
             });
 
             const mappedStudents = subjectsScores.map(score => {
-                const student = students.find(s => s.id === score.id_student);
+                const student = students.find(s => s.id === score.id_student && s.estado === "Activo");
                 return student ? {
                     id: student.id,
                     nombres_apellidos: student.nombres_apellidos,
