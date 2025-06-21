@@ -5,7 +5,7 @@ import { PgStudent } from "../entities/PgStudent";
 import { ScoreService } from "./score.service";
 import { SubjectService } from "./subject.service";
 import { boletinDTO } from "../dtos/boletinDTO";
-import { ciclo, porcentual, desem } from "../utils/utils";
+import { ciclo, porcentual, desem, obs, stateStudent } from "../utils/utils";
 import { PgSubject } from "../entities/PgSubject";
 import { PgScore } from "../entities/PgScore";
 
@@ -184,8 +184,8 @@ export class StudentService {
         return await this.studentRepository.save(student);
     }
 
-    async getBoletinByStudentId(studentId: number): Promise<boletinDTO | null> {
-        const scores:PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
+    async getBoletinByStudentId(studentId: number, obse: string): Promise<boletinDTO | null> {
+        const scores: PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
             return null;
         }
@@ -197,7 +197,8 @@ export class StudentService {
             fecha_creacion: new Date().toLocaleDateString(),
             nombres_apellidos: student.nombres_apellidos,
             grado: student.grado,
-            ciclo: ciclo(student.grado),
+            ciclo: ciclo(new Date()),
+            state: '',
             jornada: student.jornada,
             castellano_corte1: 0,
             castellano_corte2: 0,
@@ -209,6 +210,7 @@ export class StudentService {
             castellano_porcentual2: 0,
             castellano_porcentual3: 0,
             castellano_def: 0,
+            castellano_obs: '',
             sociales_corte1: 0,
             sociales_corte2: 0,
             sociales_corte3: 0,
@@ -219,6 +221,7 @@ export class StudentService {
             sociales_porcentual2: 0,
             sociales_porcentual3: 0,
             sociales_def: 0,
+            sociales_obs: '',
             ingles_corte1: 0,
             ingles_corte2: 0,
             ingles_corte3: 0,
@@ -229,6 +232,7 @@ export class StudentService {
             ingles_porcentual2: 0,
             ingles_porcentual3: 0,
             ingles_def: 0,
+            ingles_obs: '',
             quimica_corte1: 0,
             quimica_corte2: 0,
             quimica_corte3: 0,
@@ -239,6 +243,7 @@ export class StudentService {
             quimica_porcentual2: 0,
             quimica_porcentual3: 0,
             quimica_def: 0,
+            quimica_obs: '',
             fisica_corte1: 0,
             fisica_corte2: 0,
             fisica_corte3: 0,
@@ -249,6 +254,7 @@ export class StudentService {
             fisica_porcentual2: 0,
             fisica_porcentual3: 0,
             fisica_def: 0,
+            fisica_obs: '',
             matematicas_corte1: 0,
             matematicas_corte2: 0,
             matematicas_corte3: 0,
@@ -259,6 +265,7 @@ export class StudentService {
             matematicas_porcentual2: 0,
             matematicas_porcentual3: 0,
             matematicas_def: 0,
+            matematicas_obs: '',
             emprendimiento_corte1: 0,
             emprendimiento_corte2: 0,
             emprendimiento_corte3: 0,
@@ -269,6 +276,7 @@ export class StudentService {
             emprendimiento_porcentual2: 0,
             emprendimiento_porcentual3: 0,
             emprendimiento_def: 0,
+            emprendimiento_obs: '',
             filosofia_corte1: 0,
             filosofia_corte2: 0,
             filosofia_corte3: 0,
@@ -279,6 +287,7 @@ export class StudentService {
             filosofia_porcentual2: 0,
             filosofia_porcentual3: 0,
             filosofia_def: 0,
+            filosofia_obs: '',
             etica_religion_corte1: 0,
             etica_religion_corte2: 0,
             etica_religion_corte3: 0,
@@ -289,6 +298,7 @@ export class StudentService {
             etica_religion_porcentual2: 0,
             etica_religion_porcentual3: 0,
             etica_religion_def: 0,
+            etica_religion_obs: '',
             informatica_corte1: 0,
             informatica_corte2: 0,
             informatica_corte3: 0,
@@ -299,6 +309,7 @@ export class StudentService {
             informatica_porcentual2: 0,
             informatica_porcentual3: 0,
             informatica_def: 0,
+            informatica_obs: '',
             ed_fisica_corte1: 0,
             ed_fisica_corte2: 0,
             ed_fisica_corte3: 0,
@@ -309,6 +320,7 @@ export class StudentService {
             ed_fisica_porcentual2: 0,
             ed_fisica_porcentual3: 0,
             ed_fisica_def: 0,
+            ed_fisica_obs: '',
             comportamiento_corte1: 0,
             comportamiento_corte2: 0,
             comportamiento_corte3: 0,
@@ -319,9 +331,11 @@ export class StudentService {
             comportamiento_porcentual2: 0,
             comportamiento_porcentual3: 0,
             comportamiento_def: 0,
+            comportamiento_obs: '',
             promedio_corte1: 0,
             promedio_corte2: 0,
             promedio_corte3: 0,
+            obs: obse,
         };
 
         // Procesa cada score y llena el boletin
@@ -344,6 +358,7 @@ export class StudentService {
                 boletin.castellano_desem1 = desem(score.corte1 ?? 0);
                 boletin.castellano_desem2 = desem(score.corte2 ?? 0);
                 boletin.castellano_desem3 = desem(score.corte3 ?? 0);
+                boletin.castellano_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "sociales") {
                 boletin.sociales_corte1 = score.corte1 ?? 0;
                 boletin.sociales_corte2 = score.corte2 ?? 0;
@@ -357,6 +372,8 @@ export class StudentService {
                 boletin.sociales_desem1 = desem(score.corte1 ?? 0);
                 boletin.sociales_desem2 = desem(score.corte2 ?? 0);
                 boletin.sociales_desem3 = desem(score.corte3 ?? 0);
+                
+                boletin.sociales_obs = obs(score.notadefinitiva ?? 0);
             }else if (nombre === "ingles") {
                 boletin.ingles_corte1 = score.corte1 ?? 0;
                 boletin.ingles_corte2 = score.corte2 ?? 0;
@@ -370,6 +387,8 @@ export class StudentService {
                 boletin.ingles_desem1 = desem(score.corte1 ?? 0);
                 boletin.ingles_desem2 = desem(score.corte2 ?? 0);
                 boletin.ingles_desem3 = desem(score.corte3 ?? 0);
+                
+                boletin.ingles_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "quimica") {
                 boletin.quimica_corte1 = score.corte1 ?? 0;
                 boletin.quimica_corte2 = score.corte2 ?? 0;
@@ -383,6 +402,8 @@ export class StudentService {
                 boletin.quimica_desem1 = desem(score.corte1 ?? 0);
                 boletin.quimica_desem2 = desem(score.corte2 ?? 0);
                 boletin.quimica_desem3 = desem(score.corte3 ?? 0);
+                
+                boletin.quimica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "fisica") {
                 boletin.fisica_corte1 = score.corte1 ?? 0;
                 boletin.fisica_corte2 = score.corte2 ?? 0;
@@ -396,6 +417,8 @@ export class StudentService {
                 boletin.fisica_desem1 = desem(score.corte1 ?? 0);
                 boletin.fisica_desem2 = desem(score.corte2 ?? 0);
                 boletin.fisica_desem3 = desem(score.corte3 ?? 0);
+                
+                boletin.fisica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "matematicas") {
                 boletin.matematicas_corte1 = score.corte1 ?? 0;
                 boletin.matematicas_corte2 = score.corte2 ?? 0;
@@ -409,6 +432,8 @@ export class StudentService {
                 boletin.matematicas_desem1 = desem(score.corte1 ?? 0);
                 boletin.matematicas_desem2 = desem(score.corte2 ?? 0);
                 boletin.matematicas_desem3 = desem(score.corte3 ?? 0);
+                
+                boletin.matematicas_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "emprendimiento") {
                 boletin.emprendimiento_corte1 = score.corte1 ?? 0;
                 boletin.emprendimiento_corte2 = score.corte2 ?? 0;
@@ -422,6 +447,7 @@ export class StudentService {
                 boletin.emprendimiento_desem1 = desem(score.corte1 ?? 0);
                 boletin.emprendimiento_desem2 = desem(score.corte2 ?? 0);
                 boletin.emprendimiento_desem3 = desem(score.corte3 ?? 0);
+                boletin.emprendimiento_obs = obs(score.notadefinitiva ?? 0);
 
             } else if (nombre === "filosofia") {
                 boletin.filosofia_corte1 = score.corte1 ?? 0;
@@ -436,6 +462,7 @@ export class StudentService {
                 boletin.filosofia_desem1 = desem(score.corte1 ?? 0);
                 boletin.filosofia_desem2 = desem(score.corte2 ?? 0);
                 boletin.filosofia_desem3 = desem(score.corte3 ?? 0);
+                boletin.filosofia_obs = obs(score.notadefinitiva ?? 0);
             }
             else if (nombre === "etica y religion" || nombre === "etica_religion") {
                 boletin.etica_religion_corte1 = score.corte1 ?? 0;
@@ -450,6 +477,7 @@ export class StudentService {
                 boletin.etica_religion_desem1 = desem(score.corte1 ?? 0);
                 boletin.etica_religion_desem2 = desem(score.corte2 ?? 0);
                 boletin.etica_religion_desem3 = desem(score.corte3 ?? 0);
+                boletin.etica_religion_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "informatica") {
                 boletin.informatica_corte1 = score.corte1 ?? 0;
                 boletin.informatica_corte2 = score.corte2 ?? 0;
@@ -463,6 +491,7 @@ export class StudentService {
                 boletin.informatica_desem1 = desem(score.corte1 ?? 0);
                 boletin.informatica_desem2 = desem(score.corte2 ?? 0);
                 boletin.informatica_desem3 = desem(score.corte3 ?? 0);
+                boletin.informatica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "educacion fisica" || nombre === "ed_fisica") {
                 boletin.ed_fisica_corte1 = score.corte1 ?? 0;
                 boletin.ed_fisica_corte2 = score.corte2 ?? 0;
@@ -476,6 +505,7 @@ export class StudentService {
                 boletin.ed_fisica_desem1 = desem(score.corte1 ?? 0);
                 boletin.ed_fisica_desem2 = desem(score.corte2 ?? 0);
                 boletin.ed_fisica_desem3 = desem(score.corte3 ?? 0);
+                boletin.ed_fisica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "comportamiento") {
                 boletin.comportamiento_corte1 = score.corte1 ?? 0;
                 boletin.comportamiento_corte2 = score.corte2 ?? 0;
@@ -489,14 +519,27 @@ export class StudentService {
                 boletin.comportamiento_desem1 = desem(score.corte1 ?? 0);
                 boletin.comportamiento_desem2 = desem(score.corte2 ?? 0);
                 boletin.comportamiento_desem3 = desem(score.corte3 ?? 0);
+                boletin.comportamiento_obs = obs(score.notadefinitiva ?? 0);
             }
         }
 
-        // Calcular promedios finales por corte, excluyendo la nota de comportamiento
-        const materiasParaPromedio = [
-            'castellano', 'ingles', 'quimica', 'fisica', 'matematicas',
-            'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica' // 'comportamiento' ha sido excluido
-        ] as const;
+        // Determinar materias para promedio según el grado
+        let materiasParaPromedio: string[] = [];
+        const gradoNum = parseInt(student.grado);
+
+        if (!isNaN(gradoNum) && gradoNum < 9) {
+            // Menor a 9: quitar fisica y cambiar filosofia por sociales
+            materiasParaPromedio = [
+                'castellano', 'ingles', 'quimica', 'sociales', 'matematicas',
+                'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
+            ];
+        } else {
+            // 9 o más: dejar como estaba
+            materiasParaPromedio = [
+                'castellano', 'ingles', 'quimica', 'fisica', 'matematicas',
+                'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
+            ];
+        }
 
         type Materia = typeof materiasParaPromedio[number];
         type CorteKey = `${Materia}_corte1` | `${Materia}_corte2` | `${Materia}_corte3`;
@@ -530,6 +573,42 @@ export class StudentService {
         boletin.promedio_corte1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
         boletin.promedio_corte2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
         boletin.promedio_corte3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
+
+        // Contar materias con definitiva <= 2.9
+        let definitivas: number[] = [];
+        if (!isNaN(gradoNum) && gradoNum < 9) {
+            // Menor a 9: usar sociales en vez de filosofia y quitar fisica
+            definitivas = [
+                boletin.castellano_def,
+                boletin.ingles_def,
+                boletin.quimica_def,
+                boletin.sociales_def,
+                boletin.matematicas_def,
+                boletin.emprendimiento_def,
+                boletin.etica_religion_def,
+                boletin.informatica_def,
+                boletin.ed_fisica_def
+            ];
+        } else {
+            // 9 o más: usar materias normales
+            definitivas = [
+                boletin.castellano_def,
+                boletin.ingles_def,
+                boletin.quimica_def,
+                boletin.fisica_def,
+                boletin.matematicas_def,
+                boletin.emprendimiento_def,
+                boletin.etica_religion_def,
+                boletin.informatica_def,
+                boletin.ed_fisica_def
+            ];
+        }
+
+        const materiasBajas = definitivas.filter(def => def <= 2.9).length;
+
+        // Lógica para el estado del estudiante
+        // Si el grado es menor a 9, se usa la lógica especial
+        boletin.state = stateStudent(materiasBajas);
 
         return boletin;
     }

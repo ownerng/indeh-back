@@ -139,13 +139,12 @@ export class SubjectService {
                 }
             }
 
-            if (subjectsToCreate.length === 0) {
-                console.log("Las materias iniciales ya existen.");
-                return;
+            if (subjectsToCreate.length > 0) {
+                await this.subjectRepository.save(subjectsToCreate);
+                console.log("Materias faltantes creadas correctamente.");
+            } else {
+                console.log("Todas las materias requeridas ya existen.");
             }
-
-            await this.subjectRepository.save(subjectsToCreate);
-            console.log("Materias iniciales creadas correctamente.");
         } catch (error) {
             console.error("Error al inicializar las materias:", error);
         }

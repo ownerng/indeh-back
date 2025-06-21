@@ -33,10 +33,12 @@ routerStudent.get(
   studentControllerInstance.getStudentsByProfessorId
 )
 
-routerStudent.get(
+routerStudent.post(
   '/boletin/:id',
   authenticateToken,
   authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
   studentControllerInstance.getBoletinByStudentId
 )
 

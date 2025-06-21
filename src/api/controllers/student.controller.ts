@@ -97,6 +97,7 @@ export class StudentController {
 
     async getBoletinByStudentId(req: Request, res: Response): Promise<Response> {
         const { id } = req.params;
+        const { obse } = req.body;
         const studentId = parseInt(id);
 
         if (isNaN(studentId)) {
@@ -105,7 +106,7 @@ export class StudentController {
         }
 
         try {
-            const boletin = await studentService.getBoletinByStudentId(studentId);
+            const boletin = await studentService.getBoletinByStudentId(studentId, obse);
 
 
             if (!boletin) {
@@ -114,7 +115,7 @@ export class StudentController {
             }
 
             // Carga la plantilla HTML
-            const templateFile = ['6', '7', '8', '9'].includes(boletin.grado)
+            const templateFile = ['1','2','3','4','5','6', '7', '8', '9'].includes(boletin.grado)
                 ? 'boletin6.html'
                 : 'boletin.html';
             const templatePath = join(__dirname, '../../templates', templateFile);

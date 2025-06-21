@@ -4,6 +4,7 @@ export interface boletinDTO {
     grado: string;
     ciclo: string;
     jornada: string;
+    state: string;
     //materias
     castellano_corte1: number;
     castellano_corte2: number;
@@ -15,6 +16,7 @@ export interface boletinDTO {
     castellano_porcentual2: number;
     castellano_porcentual3: number;
     castellano_def: number;
+    castellano_obs: string;
 
     sociales_corte1: number;
     sociales_corte2: number;
@@ -26,6 +28,7 @@ export interface boletinDTO {
     sociales_porcentual2: number;
     sociales_porcentual3: number;
     sociales_def: number;
+    sociales_obs: string;
 
     ingles_corte1: number;
     ingles_corte2: number;
@@ -37,6 +40,7 @@ export interface boletinDTO {
     ingles_porcentual2: number;
     ingles_porcentual3: number;
     ingles_def: number;
+    ingles_obs: string;
 
     quimica_corte1: number;
     quimica_corte2: number;
@@ -48,6 +52,7 @@ export interface boletinDTO {
     quimica_porcentual2: number;
     quimica_porcentual3: number;
     quimica_def: number;
+    quimica_obs: string;
 
     fisica_corte1: number;
     fisica_corte2: number;
@@ -59,6 +64,7 @@ export interface boletinDTO {
     fisica_porcentual2: number;
     fisica_porcentual3: number;
     fisica_def: number;
+    fisica_obs: string;
 
     matematicas_corte1: number;
     matematicas_corte2: number;
@@ -70,6 +76,7 @@ export interface boletinDTO {
     matematicas_porcentual2: number;
     matematicas_porcentual3: number;
     matematicas_def: number;
+    matematicas_obs: string;
 
     emprendimiento_corte1: number;
     emprendimiento_corte2: number;
@@ -81,6 +88,7 @@ export interface boletinDTO {
     emprendimiento_porcentual2: number;
     emprendimiento_porcentual3: number;
     emprendimiento_def: number;
+    emprendimiento_obs: string;
 
     filosofia_corte1: number;
     filosofia_corte2: number;
@@ -92,6 +100,7 @@ export interface boletinDTO {
     filosofia_porcentual2: number;
     filosofia_porcentual3: number;
     filosofia_def: number;
+    filosofia_obs: string;
 
     etica_religion_corte1: number;
     etica_religion_corte2: number;
@@ -103,6 +112,7 @@ export interface boletinDTO {
     etica_religion_porcentual2: number;
     etica_religion_porcentual3: number;
     etica_religion_def: number;
+    etica_religion_obs: string;
 
     informatica_corte1: number;
     informatica_corte2: number;
@@ -114,6 +124,7 @@ export interface boletinDTO {
     informatica_porcentual2: number;
     informatica_porcentual3: number;
     informatica_def: number;
+    informatica_obs: string;
 
     ed_fisica_corte1: number;
     ed_fisica_corte2: number;
@@ -125,7 +136,7 @@ export interface boletinDTO {
     ed_fisica_porcentual2: number;
     ed_fisica_porcentual3: number;
     ed_fisica_def: number;
-
+    ed_fisica_obs: string;
     
     comportamiento_corte1: number;
     comportamiento_corte2: number;
@@ -137,9 +148,13 @@ export interface boletinDTO {
     comportamiento_porcentual2: number;
     comportamiento_porcentual3: number;
     comportamiento_def: number;
+    comportamiento_obs: string;
 
     promedio_corte1: number;
     promedio_corte2: number;
-    promedio_corte3: number
+    promedio_corte3: number;
+
+    
+    obs: string;
     
 }
