@@ -119,66 +119,63 @@ export class StudentService {
         student.parentesco_familiar2 = studentData.parentesco_familiar2;
         student.empresa_familiar2 = studentData.empresa_familiar2;
 
-        // Si la jornada o el grado cambiaron, actualizar los scores
-        if (oldJornada !== studentData.jornada || oldGrado !== studentData.grado) {
-            const scoreService = new ScoreService();
-            const subjectService = new SubjectService();
+        const scoreService = new ScoreService();
+        const subjectService = new SubjectService();
 
-            // Obtener los scores actuales del estudiante
-            const currentScores = await scoreService.getScoresByStudentId(student.id);
-            // Obtener materias de la nueva jornada
-            const allSubjects = await subjectService.getAllSubjects();
-            const subjectsForJornada = allSubjects.filter(s => s.jornada === studentData.jornada);
+        // Obtener los scores actuales del estudiante
+        const currentScores = await scoreService.getScoresByStudentId(student.id);
+        // Obtener materias de la nueva jornada
+        const allSubjects = await subjectService.getAllSubjects();
+        const subjectsForJornada = allSubjects.filter(s => s.jornada === studentData.jornada);
 
-            // Filtrar materias según el nuevo grado
-            const gradoNum = parseInt(studentData.grado);
-            let filteredSubjects: typeof subjectsForJornada = [];
+        // Filtrar materias según el nuevo grado
+        const gradoNum = parseInt(studentData.grado);
+        let filteredSubjects: typeof subjectsForJornada = [];
 
-            if (!isNaN(gradoNum)) {
-                if (gradoNum >= 1 && gradoNum <= 9) {
-                    filteredSubjects = subjectsForJornada.filter(
-                        s => s.nombre.toLowerCase() !== "filosofia" && s.nombre.toLowerCase() !== "fisica"
-                    );
-                } else if (gradoNum >= 10 && gradoNum <= 11) {
-                    filteredSubjects = subjectsForJornada.filter(
-                        s => s.nombre.toLowerCase() !== "sociales"
-                    );
-                } else {
-                    filteredSubjects = subjectsForJornada;
-                }
+        if (!isNaN(gradoNum)) {
+            if (gradoNum >= 1 && gradoNum <= 9) {
+                filteredSubjects = subjectsForJornada.filter(
+                    s => s.nombre.toLowerCase() !== "filosofia" && s.nombre.toLowerCase() !== "fisica"
+                );
+            } else if (gradoNum >= 10 && gradoNum <= 11) {
+                filteredSubjects = subjectsForJornada.filter(
+                    s => s.nombre.toLowerCase() !== "sociales"
+                );
             } else {
                 filteredSubjects = subjectsForJornada;
             }
+        } else {
+            filteredSubjects = subjectsForJornada;
+        }
 
-            // Mapear materias actuales por nombre (para comparar)
-            const currentScoresBySubjectName = new Map(
-                currentScores.map(score => [score.id_subject.nombre.toLowerCase(), score])
-            );
+        // Mapear materias actuales por nombre (para comparar)
+        const currentScoresBySubjectName = new Map(
+            currentScores.map(score => [score.id_subject.nombre.toLowerCase(), score])
+        );
 
-            for (const subject of filteredSubjects) {
-                const subjectName = subject.nombre.toLowerCase();
-                const existingScore = currentScoresBySubjectName.get(subjectName);
+        for (const subject of filteredSubjects) {
+            const subjectName = subject.nombre.toLowerCase();
+            const existingScore = currentScoresBySubjectName.get(subjectName);
 
-                if (existingScore) {
-                    // Actualiza el id_subject del score existente a la materia de la nueva jornada
-                    await scoreService.updatescoreById(existingScore.id, {
-                        id_student: student.id,
-                        id_subject: subject.id
-                    });
-                    currentScoresBySubjectName.delete(subjectName);
-                } else {
-                    // Si no existe score para esta materia, crea uno nuevo
-                    await scoreService.createScore({
-                        id_student: student.id,
-                        id_subject: subject.id
-                    });
-                }
+            if (existingScore) {
+                // Actualiza el id_subject del score existente a la materia de la nueva jornada
+                await scoreService.updatescoreById(existingScore.id, {
+                    id_student: student.id,
+                    id_subject: subject.id
+                });
+                currentScoresBySubjectName.delete(subjectName);
+            } else {
+                // Si no existe score para esta materia, crea uno nuevo
+                await scoreService.createScore({
+                    id_student: student.id,
+                    id_subject: subject.id
+                });
             }
+        }
 
-            // Elimina scores de materias que ya no están en la nueva jornada y grado
-            for (const score of currentScoresBySubjectName.values()) {
-                await scoreService.deleteScoreById(score.id);
-            }
+        // Elimina scores de materias que ya no están en la nueva jornada y grado
+        for (const score of currentScoresBySubjectName.values()) {
+            await scoreService.deleteScoreById(score.id);
         }
 
         return await this.studentRepository.save(student);
@@ -340,7 +337,7 @@ export class StudentService {
 
         // Procesa cada score y llena el boletin
         for (const score of scores) {
-            const subject = await new SubjectService().getSubjectById( score.id_subject.id);
+            const subject = await new SubjectService().getSubjectById(score.id_subject.id);
             if (!subject) continue;
 
             const nombre = subject.nombre.toLowerCase();
@@ -372,9 +369,9 @@ export class StudentService {
                 boletin.sociales_desem1 = desem(score.corte1 ?? 0);
                 boletin.sociales_desem2 = desem(score.corte2 ?? 0);
                 boletin.sociales_desem3 = desem(score.corte3 ?? 0);
-                
+
                 boletin.sociales_obs = obs(score.notadefinitiva ?? 0);
-            }else if (nombre === "ingles") {
+            } else if (nombre === "ingles") {
                 boletin.ingles_corte1 = score.corte1 ?? 0;
                 boletin.ingles_corte2 = score.corte2 ?? 0;
                 boletin.ingles_corte3 = score.corte3 ?? 0;
@@ -387,7 +384,7 @@ export class StudentService {
                 boletin.ingles_desem1 = desem(score.corte1 ?? 0);
                 boletin.ingles_desem2 = desem(score.corte2 ?? 0);
                 boletin.ingles_desem3 = desem(score.corte3 ?? 0);
-                
+
                 boletin.ingles_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "quimica") {
                 boletin.quimica_corte1 = score.corte1 ?? 0;
@@ -402,7 +399,7 @@ export class StudentService {
                 boletin.quimica_desem1 = desem(score.corte1 ?? 0);
                 boletin.quimica_desem2 = desem(score.corte2 ?? 0);
                 boletin.quimica_desem3 = desem(score.corte3 ?? 0);
-                
+
                 boletin.quimica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "fisica") {
                 boletin.fisica_corte1 = score.corte1 ?? 0;
@@ -417,7 +414,7 @@ export class StudentService {
                 boletin.fisica_desem1 = desem(score.corte1 ?? 0);
                 boletin.fisica_desem2 = desem(score.corte2 ?? 0);
                 boletin.fisica_desem3 = desem(score.corte3 ?? 0);
-                
+
                 boletin.fisica_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "matematicas") {
                 boletin.matematicas_corte1 = score.corte1 ?? 0;
@@ -432,7 +429,7 @@ export class StudentService {
                 boletin.matematicas_desem1 = desem(score.corte1 ?? 0);
                 boletin.matematicas_desem2 = desem(score.corte2 ?? 0);
                 boletin.matematicas_desem3 = desem(score.corte3 ?? 0);
-                
+
                 boletin.matematicas_obs = obs(score.notadefinitiva ?? 0);
             } else if (nombre === "emprendimiento") {
                 boletin.emprendimiento_corte1 = score.corte1 ?? 0;
@@ -620,19 +617,19 @@ export class StudentService {
             const subjectsScores = studentsScores.filter(score => score.id_subject === subject.id);
             const studentIds = subjectsScores.map(score => score.id_student);
             const students = await this.studentRepository.find({
-                where: { id: In(studentIds)},
+                where: { id: In(studentIds) },
                 select: ["id", "nombres_apellidos", "grado"]
             });
 
             const mappedStudents = subjectsScores.map(score => {
                 const student = students.find(s => s.id === score.id_student);
                 return student ? {
-                    id : student.id,
+                    id: student.id,
                     nombres_apellidos: student.nombres_apellidos,
                     grado: student.grado,
-                    id_score : score.id
-                } : null  
-            }).filter(Boolean) as {id: number; nombres_apellidos: string; grado: string; id_score: number;}[];
+                    id_score: score.id
+                } : null
+            }).filter(Boolean) as { id: number; nombres_apellidos: string; grado: string; id_score: number; }[];
 
             return {
                 nombre_asignatura: subject.nombre,
