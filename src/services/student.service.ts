@@ -593,9 +593,13 @@ export class StudentService {
             }
         }
 
-        boletin.promedio_corte1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
-        boletin.promedio_corte2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
-        boletin.promedio_corte3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
+        const promedio1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
+        const promedio2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
+        const promedio3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
+
+        boletin.promedio_corte1 = Number.isFinite(promedio1) ? promedio1 : 0;
+        boletin.promedio_corte2 = Number.isFinite(promedio2) ? promedio2 : 0;
+        boletin.promedio_corte3 = Number.isFinite(promedio3) ? promedio3 : 0;
 
         // Contar materias con definitiva <= 2.9
         let definitivas: number[] = [];
@@ -707,14 +711,15 @@ export class StudentService {
         return pgStudent;
     }
 
-    async updateScoresForStudents(studentIds: number[]): Promise<void> {
+    async updateScoresForStudents(): Promise<void> {
+        const students = await this.studentRepository.find();
         const scoreService = new ScoreService();
         const subjectService = new SubjectService();
         const allSubjects = await subjectService.getAllSubjects();
 
-        for (const studentId of studentIds) {
-            const student = await this.studentRepository.findOneBy({ id: studentId });
-            if (!student) continue;
+        for (const student of students) {
+            const studentId = student.id;
+            if (!studentId) continue;
 
             // Filtrar materias según la jornada y grado del estudiante
             const subjectsForJornada = allSubjects.filter(s => s.jornada === student.jornada);

@@ -173,12 +173,8 @@ export class StudentController {
     }
 
     async updateScoresForStudents(req: Request, res: Response): Promise<Response> {
-        const { studentIds } = req.body;
-        if (!Array.isArray(studentIds) || studentIds.length === 0) {
-            return res.status(400).json({ message: 'Debe enviar un array de IDs de estudiantes.' });
-        }
         try {
-            await studentService.updateScoresForStudents(studentIds);
+            await studentService.updateScoresForStudents();
             return res.status(200).json({ message: 'Scores actualizados correctamente.' });
         } catch (error) {
             console.error("Error al actualizar scores de estudiantes:", error);

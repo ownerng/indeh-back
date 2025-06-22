@@ -42,7 +42,7 @@ routerStudent.post(
   studentControllerInstance.getBoletinByStudentId
 )
 
-routerStudent.post(
+routerStudent.get(
   '/update/scores/all',
   authenticateToken,
   authorizeRole([UserRole.EJECUTIVO]),
