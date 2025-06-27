@@ -594,15 +594,15 @@ export class StudentService {
             const corte2Key = `${materia}_corte2` as CorteKey;
             const corte3Key = `${materia}_corte3` as CorteKey;
 
-            if ((boletin as any)[corte1Key] > 0) {
+            if ((boletin as any)[corte1Key] !== null && (boletin as any)[corte1Key] !== undefined) {
                 sumCorte1 += (boletin as any)[corte1Key];
                 countCorte1++;
             }
-            if ((boletin as any)[corte2Key] > 0) {
+            if ((boletin as any)[corte2Key] !== null && (boletin as any)[corte2Key] !== undefined) {
                 sumCorte2 += (boletin as any)[corte2Key];
                 countCorte2++;
             }
-            if ((boletin as any)[corte3Key] > 0) {
+            if ((boletin as any)[corte3Key] !== null && (boletin as any)[corte3Key] !== undefined) {
                 sumCorte3 += (boletin as any)[corte3Key];
                 countCorte3++;
             }
