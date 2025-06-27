@@ -560,62 +560,9 @@ export class StudentService {
                 boletin.comportamiento_obs = obs(score.notadefinitiva ?? 0);
             }
         }
-
-        // Determinar materias para promedio según el grado
-        let materiasParaPromedio: string[] = [];
+        
         const gradoNum = parseInt(student.grado);
 
-        if (!isNaN(gradoNum) && gradoNum < 9) {
-            // Menor a 9: quitar fisica y cambiar filosofia por sociales
-            materiasParaPromedio = [
-                'castellano', 'ingles', 'quimica', 'sociales', 'biologia', 'matematicas',
-                'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
-            ];
-        } else {
-            // 9 o más: dejar como estaba
-            materiasParaPromedio = [
-                'castellano', 'ingles', 'quimica', 'fisica', 'matematicas', 'filosofia',
-                'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
-            ];
-        }
-
-        type Materia = typeof materiasParaPromedio[number];
-        type CorteKey = `${Materia}_corte1` | `${Materia}_corte2` | `${Materia}_corte3`;
-
-        let sumCorte1 = 0;
-        let countCorte1 = 0;
-        let sumCorte2 = 0;
-        let countCorte2 = 0;
-        let sumCorte3 = 0;
-        let countCorte3 = 0;
-
-
-        for (const materia of materiasParaPromedio) {
-            // Los nombres deben coincidir exactamente con los del DTO
-            const corte1 = (boletin as any)[`${materia}_corte1`];
-            const corte2 = (boletin as any)[`${materia}_corte2`];
-            const corte3 = (boletin as any)[`${materia}_corte3`];
-
-            if (typeof corte1 === "number") {
-                sumCorte1 += corte1;
-                countCorte1++;
-            }
-            if (typeof corte2 === "number") {
-                sumCorte2 += corte2;
-                countCorte2++;
-            }
-            if (typeof corte3 === "number") {
-                sumCorte3 += corte3;
-                countCorte3++;
-            }
-        }
-
-        boletin.promedio_corte1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
-        boletin.promedio_corte2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
-        boletin.promedio_corte3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
-        console.log(countCorte1, countCorte2, countCorte3, sumCorte1, sumCorte2, sumCorte3);
-        console.log(boletin.promedio_corte1, boletin.promedio_corte2, boletin.promedio_corte3);
-        // Contar materias con definitiva <= 2.9
         let definitivas: number[] = [];
         if (!isNaN(gradoNum) && gradoNum < 9) {
             // Menor a 9: usar sociales en vez de filosofia y quitar fisica
