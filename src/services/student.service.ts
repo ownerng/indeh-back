@@ -613,7 +613,8 @@ export class StudentService {
         boletin.promedio_corte1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
         boletin.promedio_corte2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
         boletin.promedio_corte3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
-
+        console.log(countCorte1, countCorte2, countCorte3, sumCorte1, sumCorte2, sumCorte3);
+        console.log(boletin.promedio_corte1, boletin.promedio_corte2, boletin.promedio_corte3);
         // Contar materias con definitiva <= 2.9
         let definitivas: number[] = [];
         if (!isNaN(gradoNum) && gradoNum < 9) {
