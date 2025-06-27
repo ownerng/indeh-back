@@ -4,10 +4,15 @@ import { CreateStudentDTO } from "../dtos/createStudentDTO";
 import { PgStudent } from "../entities/PgStudent";
 import { ScoreService } from "./score.service";
 import { SubjectService } from "./subject.service";
-import { boletinDTO } from "../dtos/boletinDTO";
+import { boletinDTO, Observaciones } from "../dtos/boletinDTO";
 import { ciclo, porcentual, desem, obs, stateStudent } from "../utils/utils";
 import { PgSubject } from "../entities/PgSubject";
 import { PgScore } from "../entities/PgScore";
+import * as path from "path";
+import * as fs from "fs";
+import * as handlebars from "handlebars";
+import * as puppeteer from "puppeteer";
+
 
 export class StudentService {
     private studentRepository = AppDataSource.getRepository(PgStudent);
@@ -181,6 +186,15 @@ export class StudentService {
         return await this.studentRepository.save(student);
     }
 
+    async getStudentsByGrade (grado: string): Promise<PgStudent[] | null> {
+        const student = await this.studentRepository.findBy({ grado: grado });
+        if (!student) {
+            return null;
+        }
+        return student;
+
+    }
+
     async getBoletinByStudentId(studentId: number, obse: string): Promise<boletinDTO | null> {
         const scores: PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
@@ -197,6 +211,7 @@ export class StudentService {
             ciclo: ciclo(new Date()),
             state: '',
             jornada: student.jornada,
+            puesto: 1,
             castellano_corte1: 0,
             castellano_corte2: 0,
             castellano_corte3: 0,
@@ -775,5 +790,71 @@ export class StudentService {
                 await scoreService.deleteScoreById(score.id);
             }
         }
+    }
+
+    /**
+     * Genera los boletines PDF de todos los estudiantes de un grado,
+     * asignando puesto y observación individual a cada uno.
+     * Devuelve un array de { filename, buffer } para ser zipeados.
+     */
+    async getBoletinesByGradoWithRanking(
+        grado: string ,
+        observaciones: Observaciones[]
+    ): Promise<{ filename: string; buffer: Buffer }[]> {
+        const students = await this.studentRepository.find({ where: { grado: grado, estado: "Activo" } });
+        const scoreService = new ScoreService();
+
+        // 1. Calcular promedios de notadefinitiva para cada estudiante
+        const studentPromedios: { student: PgStudent; promedio: number }[] = [];
+        for (const student of students) {
+            const scores: PgScore[] = await scoreService.getScoresByStudentId(student.id);
+            const definitivas = scores.map(s => s.notadefinitiva).filter(n => typeof n === "number");
+            const promedio = definitivas.length > 0
+                ? definitivas.reduce((a, b) => a + b, 0) / definitivas.length
+                : 0;
+            studentPromedios.push({ student, promedio });
+        }
+
+        // 2. Rankear estudiantes por promedio (mayor a menor)
+        studentPromedios.sort((a, b) => b.promedio - a.promedio);
+
+        // 3. Generar los boletines PDF con puesto y observación individual
+        const pdfBuffers: { filename: string; buffer: Buffer }[] = [];
+        for (let i = 0; i < studentPromedios.length; i++) {
+            const { student } = studentPromedios[i];
+            const puesto = i + 1;
+
+            // Buscar la observación personalizada para este estudiante
+            const obsObj = observaciones.find(o => o.id_student === student.id);
+            const obse = obsObj ? obsObj.obse : "";
+
+            // Generar el boletín DTO con puesto y observación
+            const boletin = await this.getBoletinByStudentId(student.id, obse);
+            if (!boletin) continue;
+            boletin.puesto = puesto;
+
+            // Seleccionar plantilla según grado
+            const templateFile = ['1','2','3','4','5','6', '7', '8', '9'].includes(boletin.grado)
+                ? 'boletin6.html'
+                : 'boletin.html';
+            const templatePath = path.join(process.cwd(), 'dist', 'templates', templateFile);
+            const htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
+            const compiledTemplate = handlebars.compile(htmlTemplate);
+            const content = compiledTemplate(boletin);
+
+            // Generar PDF con Puppeteer
+            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const page = await browser.newPage();
+            await page.setContent(content, { waitUntil: 'networkidle0' });
+            const pdfBuffer = await page.pdf({ format: 'Letter', printBackground: true });
+            await browser.close();
+
+            pdfBuffers.push({
+                filename: `boletin-${student.nombres_apellidos.replace(/ /g, "_")}-puesto${puesto}.pdf`,
+                buffer: Buffer.from(pdfBuffer)
+            });
+        }
+
+        return pdfBuffers;
     }
 }

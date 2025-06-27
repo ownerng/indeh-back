@@ -129,4 +129,22 @@ export class ScoreController {
             res.status(500).json({ message: 'Error interno del servidor.' });
         }
     }
+
+    async getScoresByStudentId(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+        const studentId = parseInt(id);
+
+        if (isNaN(studentId)) {
+            console.error("Error: ID de estudiante no válido.");
+            return res.status(400).json({ message: 'ID de estudiante no válido.' });
+        }
+
+        try {
+            const scores = await scoreService.getScoresByStudentId(studentId);
+            return res.status(200).json(scores);
+        } catch (error) {
+            console.error("Error al obtener las notas del estudiante:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
 }

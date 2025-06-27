@@ -42,6 +42,15 @@ routerStudent.post(
   studentControllerInstance.getBoletinByStudentId
 )
 
+routerStudent.post(
+  '/boletin',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.getBoletinesByGrado
+)
+
 routerStudent.get(
   '/update/scores/all',
   authenticateToken,
@@ -76,6 +85,14 @@ routerStudent.get(
   express.json(), // Middleware para parsear JSON, solo para esta ruta
   express.urlencoded({ extended: true }),
   studentControllerInstance.getStudentById
+)
+routerStudent.get(
+  '/grado/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.getStudentByGrade
 )
 
 export default routerStudent;

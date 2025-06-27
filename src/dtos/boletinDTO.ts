@@ -5,6 +5,7 @@ export interface boletinDTO {
     ciclo: string;
     jornada: string;
     state: string;
+    puesto: number;
     //materias
     castellano_corte1: number;
     castellano_corte2: number;
@@ -170,4 +171,11 @@ export interface boletinDTO {
     
     obs: string;
     
+}
+
+export interface Observaciones {
+    id_student: number;
+    nombres_apellidos: string;
+    obse: string;
+
 }

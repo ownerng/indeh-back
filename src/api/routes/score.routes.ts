@@ -17,5 +17,5 @@ routerScores.get('/', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), sc
 routerScores.get('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.getScoresById);
 routerScores.put('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.updateScore);
 routerScores.delete('/:id', authenticateToken, authorizeRole([UserRole.EJECUTIVO]), scoreControllerInstance.deleteScoresById);
-
+routerScores.get('/student/:id', authenticateToken, authorizeRole([UserRole.PROFESOR]), scoreControllerInstance.getScoresByStudentId);
 export default routerScores;

@@ -6,6 +6,8 @@ import { join } from "path";
 import { readFileSync, writeFileSync } from "fs";
 import * as puppeteer from 'puppeteer';
 import * as handlebars from 'handlebars';
+import archiver from "archiver";
+import * as stream from "stream";
 
 const studentService = new StudentService();
 
@@ -42,6 +44,17 @@ export class StudentController {
         }
         try {
             const student = await studentService.getStudentById(studentId);
+            return res.status(200).json(student);
+        } catch (error) {
+            console.error("Error al obtener estudiante por ID:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async getStudentByGrade(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+        try {
+            const student = await studentService.getStudentsByGrade(id);
             return res.status(200).json(student);
         } catch (error) {
             console.error("Error al obtener estudiante por ID:", error);
@@ -179,6 +192,34 @@ export class StudentController {
         } catch (error) {
             console.error("Error al actualizar scores de estudiantes:", error);
             return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async getBoletinesByGrado(req: Request, res: Response): Promise<Response> {
+        const { grado, obse } = req.body; // obse es un array de observaciones individuales
+
+        try {
+            const pdfBuffers = await studentService.getBoletinesByGradoWithRanking(grado, obse);
+
+            // Crear el zip y enviarlo por stream
+            const archive = archiver('zip');
+            const zipStream = new stream.PassThrough();
+
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename=boletines-grado-${grado}.zip`);
+
+            archive.pipe(zipStream);
+            zipStream.pipe(res);
+
+            for (const pdf of pdfBuffers) {
+                archive.append(pdf.buffer, { name: pdf.filename });
+            }
+            await archive.finalize();
+
+            return res; // El zip se envía por stream
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Error generando boletines.' });
         }
     }
 }
