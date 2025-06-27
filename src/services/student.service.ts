@@ -186,7 +186,7 @@ export class StudentService {
         return await this.studentRepository.save(student);
     }
 
-    async getStudentsByGrade (grado: string): Promise<PgStudent[] | null> {
+    async getStudentsByGrade(grado: string): Promise<PgStudent[] | null> {
         const student = await this.studentRepository.findBy({ grado: grado });
         if (!student) {
             return null;
@@ -568,13 +568,13 @@ export class StudentService {
         if (!isNaN(gradoNum) && gradoNum < 9) {
             // Menor a 9: quitar fisica y cambiar filosofia por sociales
             materiasParaPromedio = [
-                'castellano', 'ingles', 'quimica', 'sociales', 'biologia','matematicas',
+                'castellano', 'ingles', 'quimica', 'sociales', 'biologia', 'matematicas',
                 'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
             ];
         } else {
             // 9 o más: dejar como estaba
             materiasParaPromedio = [
-                'castellano', 'ingles', 'quimica', 'fisica', 'matematicas',
+                'castellano', 'ingles', 'quimica', 'fisica', 'matematicas', 'filosofia',
                 'emprendimiento', 'etica_religion', 'informatica', 'ed_fisica'
             ];
         }
@@ -589,32 +589,30 @@ export class StudentService {
         let sumCorte3 = 0;
         let countCorte3 = 0;
 
-        for (const materia of materiasParaPromedio) {
-            const corte1Key = `${materia}_corte1` as CorteKey;
-            const corte2Key = `${materia}_corte2` as CorteKey;
-            const corte3Key = `${materia}_corte3` as CorteKey;
 
-            if ((boletin as any)[corte1Key] !== null && (boletin as any)[corte1Key] !== undefined) {
-                sumCorte1 += (boletin as any)[corte1Key];
+        for (const materia of materiasParaPromedio) {
+            // Los nombres deben coincidir exactamente con los del DTO
+            const corte1 = (boletin as any)[`${materia}_corte1`];
+            const corte2 = (boletin as any)[`${materia}_corte2`];
+            const corte3 = (boletin as any)[`${materia}_corte3`];
+
+            if (typeof corte1 === "number") {
+                sumCorte1 += corte1;
                 countCorte1++;
             }
-            if ((boletin as any)[corte2Key] !== null && (boletin as any)[corte2Key] !== undefined) {
-                sumCorte2 += (boletin as any)[corte2Key];
+            if (typeof corte2 === "number") {
+                sumCorte2 += corte2;
                 countCorte2++;
             }
-            if ((boletin as any)[corte3Key] !== null && (boletin as any)[corte3Key] !== undefined) {
-                sumCorte3 += (boletin as any)[corte3Key];
+            if (typeof corte3 === "number") {
+                sumCorte3 += corte3;
                 countCorte3++;
             }
         }
 
-        const promedio1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
-        const promedio2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
-        const promedio3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
-
-        boletin.promedio_corte1 = Number.isFinite(promedio1) ? promedio1 : 0;
-        boletin.promedio_corte2 = Number.isFinite(promedio2) ? promedio2 : 0;
-        boletin.promedio_corte3 = Number.isFinite(promedio3) ? promedio3 : 0;
+        boletin.promedio_corte1 = countCorte1 > 0 ? sumCorte1 / countCorte1 : 0;
+        boletin.promedio_corte2 = countCorte2 > 0 ? sumCorte2 / countCorte2 : 0;
+        boletin.promedio_corte3 = countCorte3 > 0 ? sumCorte3 / countCorte3 : 0;
 
         // Contar materias con definitiva <= 2.9
         let definitivas: number[] = [];
@@ -798,7 +796,7 @@ export class StudentService {
      * Devuelve un array de { filename, buffer } para ser zipeados.
      */
     async getBoletinesByGradoWithRanking(
-        grado: string ,
+        grado: string,
         observaciones: Observaciones[]
     ): Promise<{ filename: string; buffer: Buffer }[]> {
         const students = await this.studentRepository.find({ where: { grado: grado, estado: "Activo" } });
@@ -834,7 +832,7 @@ export class StudentService {
             boletin.puesto = puesto;
 
             // Seleccionar plantilla según grado
-            const templateFile = ['1','2','3','4','5','6', '7', '8', '9'].includes(boletin.grado)
+            const templateFile = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(boletin.grado)
                 ? 'boletin6.html'
                 : 'boletin.html';
             const templatePath = path.join(process.cwd(), 'dist', 'templates', templateFile);
