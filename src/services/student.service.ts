@@ -197,7 +197,7 @@ export class StudentService {
 
     }
 
-    async getBoletinByStudentId(studentId: number, obse: string, ciclo:string): Promise<boletinDTO | null> {
+    async getBoletinByStudentId(studentId: number, obse: string, ciclo: string, is_final: boolean): Promise<boletinDTO | null> {
         const scores: PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
             return null;
@@ -562,7 +562,7 @@ export class StudentService {
                 boletin.comportamiento_obs = obs(score.notadefinitiva ?? 0);
             }
         }
-        
+
         const gradoNum = parseInt(student.grado);
 
         let definitivas: number[] = [];
@@ -596,7 +596,7 @@ export class StudentService {
 
         const materiasBajas = definitivas.filter(def => def <= 2.9).length;
 
-        boletin.state = stateStudent(materiasBajas);
+        boletin.state = is_final ? stateStudent(materiasBajas): '';
 
         await new BoletinService().createBoletin(student, boletin);
 
@@ -750,7 +750,7 @@ export class StudentService {
     async getBoletinesByGradoWithRanking(
         grado: string,
         jornada: Jornada,
-        observaciones: Observaciones[],ciclo: string
+        observaciones: Observaciones[], ciclo: string, is_final: boolean
     ): Promise<{ filename: string; buffer: Buffer }[]> {
         // Filtrar estudiantes por grado y jornada
         const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
@@ -760,11 +760,14 @@ export class StudentService {
         const studentPromedios: { student: PgStudent; promedio: number }[] = [];
         for (const student of students) {
             // Generar el boletín para obtener definitivas correctamente según el grado
-            const boletin = await this.getBoletinByStudentId(student.id, "", ciclo);
+            const boletin = await this.getBoletinByStudentId(student.id, "", ciclo, is_final);
             if (!boletin) continue;
 
             const gradoNum = parseInt(student.grado);
             let definitivas: number[] = [];
+            let corte1: number[] = [];
+            let corte2: number[] = [];
+            let corte3: number[] = [];
             if (!isNaN(gradoNum) && gradoNum < 9) {
                 definitivas = [
                     boletin.castellano_def,
@@ -777,6 +780,38 @@ export class StudentService {
                     boletin.informatica_def,
                     boletin.ed_fisica_def
                 ];
+                corte1 = [
+                    boletin.castellano_porcentual1,
+                    boletin.ingles_porcentual1,
+                    boletin.quimica_porcentual1,
+                    boletin.sociales_porcentual1,
+                    boletin.matematicas_porcentual1,
+                    boletin.emprendimiento_porcentual1,
+                    boletin.etica_religion_porcentual1,
+                    boletin.informatica_porcentual1,
+                    boletin.ed_fisica_porcentual1
+                ];
+                corte2 = [
+                    boletin.castellano_porcentual2,
+                    boletin.ingles_porcentual2,
+                    boletin.quimica_porcentual2,
+                    boletin.sociales_porcentual2,
+                    boletin.matematicas_porcentual2,
+                    boletin.emprendimiento_porcentual2,
+                    boletin.etica_religion_porcentual2,
+                    boletin.informatica_porcentual2,
+                    boletin.ed_fisica_porcentual2
+                ];corte3 = [
+                    boletin.castellano_porcentual3,
+                    boletin.ingles_porcentual3,
+                    boletin.quimica_porcentual3,
+                    boletin.sociales_porcentual3,
+                    boletin.matematicas_porcentual3,
+                    boletin.emprendimiento_porcentual3,
+                    boletin.etica_religion_porcentual3,
+                    boletin.informatica_porcentual3,
+                    boletin.ed_fisica_porcentual3
+                ];
             } else {
                 definitivas = [
                     boletin.castellano_def,
@@ -788,6 +823,39 @@ export class StudentService {
                     boletin.etica_religion_def,
                     boletin.informatica_def,
                     boletin.ed_fisica_def
+                ];
+                corte1 = [
+                    boletin.castellano_porcentual1,
+                    boletin.ingles_porcentual1,
+                    boletin.quimica_porcentual1,
+                    boletin.fisica_porcentual1,
+                    boletin.matematicas_porcentual1,
+                    boletin.emprendimiento_porcentual1,
+                    boletin.etica_religion_porcentual1,
+                    boletin.informatica_porcentual1,
+                    boletin.ed_fisica_porcentual1
+                ];
+                corte2 = [
+                    boletin.castellano_porcentual2,
+                    boletin.ingles_porcentual2,
+                    boletin.quimica_porcentual2,
+                    boletin.fisica_porcentual2,
+                    boletin.matematicas_porcentual2,
+                    boletin.emprendimiento_porcentual2,
+                    boletin.etica_religion_porcentual2,
+                    boletin.informatica_porcentual2,
+                    boletin.ed_fisica_porcentual2
+                ];
+                corte3 = [
+                    boletin.castellano_porcentual3,
+                    boletin.ingles_porcentual3,
+                    boletin.quimica_porcentual3,
+                    boletin.fisica_porcentual3,
+                    boletin.matematicas_porcentual3,
+                    boletin.emprendimiento_porcentual3,
+                    boletin.etica_religion_porcentual3,
+                    boletin.informatica_porcentual3,
+                    boletin.ed_fisica_porcentual3
                 ];
             }
 
@@ -813,7 +881,7 @@ export class StudentService {
             const obse = obsObj ? obsObj.obse : "";
 
             // Generar el boletín DTO con puesto y observación
-            const boletin = await this.getBoletinByStudentId(student.id, obse,ciclo);
+            const boletin = await this.getBoletinByStudentId(student.id, obse, ciclo,is_final);
             if (!boletin) continue;
             boletin.puesto = puesto;
 
