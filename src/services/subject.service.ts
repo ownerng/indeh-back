@@ -82,7 +82,7 @@ export class SubjectService {
             where: {
                 profesor: { id: professorId },
             },
-            select: ["id", "nombre", "jornada"],
+            select: ["id", "nombre", "jornada", "ciclo"],
             relations: {
                 profesor: true
             }

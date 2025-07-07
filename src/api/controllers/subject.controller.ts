@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import { SubjectService } from "../../services/subject.service";
 import { CreateSubjectDTO } from "../../dtos/createSubjectDTO";
+import { CicloService } from "../../services/ciclo.service";
 
 
 const subjectService = new SubjectService();
+const cicloService = new CicloService();
 
 export class SubjectController {
     async createSubject(req: Request, res: Response): Promise<void> {
@@ -24,9 +26,11 @@ export class SubjectController {
     }
 
     async createNuevoCiclo(req: Request, res: Response): Promise<void> {
-        const {ciclo} = req.body;
+        const { ciclo } = req.body;
+
         try {
             const newSubject = await subjectService.createSubjectsForNewCiclo(ciclo);
+            await cicloService.createCiclo(ciclo);
             res.status(201).json(newSubject);
         } catch (error) {
             console.error("Error al crear materia:", error);
@@ -34,6 +38,15 @@ export class SubjectController {
         }
     }
 
+    async listCiclos(req: Request, res: Response): Promise<void> {
+        try {
+            const ciclos = await cicloService.getAllCiclos();
+            res.status(200).json(ciclos);
+        } catch (error) {
+            console.error("Error al listar materias:", error);
+            res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
     async listSubjects(req: Request, res: Response): Promise<void> {
         try {
             const subjects = await subjectService.getAllSubjects();

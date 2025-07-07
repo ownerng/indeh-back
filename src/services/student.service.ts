@@ -197,7 +197,7 @@ export class StudentService {
 
     }
 
-    async getBoletinByStudentId(studentId: number, obse: string): Promise<boletinDTO | null> {
+    async getBoletinByStudentId(studentId: number, obse: string, ciclo:string): Promise<boletinDTO | null> {
         const scores: PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
         if (scores.length === 0) {
             return null;
@@ -210,7 +210,7 @@ export class StudentService {
             fecha_creacion: new Date().toLocaleDateString(),
             nombres_apellidos: student.nombres_apellidos,
             grado: student.grado,
-            ciclo: ciclo(new Date()),
+            ciclo: ciclo,
             state: '',
             jornada: student.jornada,
             puesto: 1,
@@ -750,7 +750,7 @@ export class StudentService {
     async getBoletinesByGradoWithRanking(
         grado: string,
         jornada: Jornada,
-        observaciones: Observaciones[]
+        observaciones: Observaciones[],ciclo: string
     ): Promise<{ filename: string; buffer: Buffer }[]> {
         // Filtrar estudiantes por grado y jornada
         const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
@@ -760,7 +760,7 @@ export class StudentService {
         const studentPromedios: { student: PgStudent; promedio: number }[] = [];
         for (const student of students) {
             // Generar el boletín para obtener definitivas correctamente según el grado
-            const boletin = await this.getBoletinByStudentId(student.id, "");
+            const boletin = await this.getBoletinByStudentId(student.id, "", ciclo);
             if (!boletin) continue;
 
             const gradoNum = parseInt(student.grado);
@@ -813,7 +813,7 @@ export class StudentService {
             const obse = obsObj ? obsObj.obse : "";
 
             // Generar el boletín DTO con puesto y observación
-            const boletin = await this.getBoletinByStudentId(student.id, obse);
+            const boletin = await this.getBoletinByStudentId(student.id, obse,ciclo);
             if (!boletin) continue;
             boletin.puesto = puesto;
 

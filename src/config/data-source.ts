@@ -6,6 +6,7 @@ import { PgStudent } from "../entities/PgStudent";
 import { PgSubject } from "../entities/PgSubject";
 import { PgScore } from "../entities/PgScore";
 import { PgBoletin } from "../entities/PgBoletin";
+import { PgCiclo } from "../entities/PgCiclo";
 dotenv.config();
 
 export const AppDataSource = new DataSource({
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || "indehdb",
   synchronize: true, 
   logging: false, 
-  entities: [PgUser, PgStudent, PgSubject, PgScore, PgBoletin], 
+  entities: [PgUser, PgStudent, PgSubject, PgScore, PgBoletin, PgCiclo], 
   migrations: [],
   subscribers: [],
 });

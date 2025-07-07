@@ -25,6 +25,13 @@ routerSubject.post(
 );
 
 routerSubject.get(
+  '/ciclos',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO, UserRole.PROFESOR]),
+  subjectControllerInstance.listCiclos
+);
+
+routerSubject.get(
   '/',
   authenticateToken,
   authorizeRole([UserRole.EJECUTIVO]),
