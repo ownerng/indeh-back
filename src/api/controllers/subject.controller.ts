@@ -23,6 +23,17 @@ export class SubjectController {
         }
     }
 
+    async createNuevoCiclo(req: Request, res: Response): Promise<void> {
+        const {ciclo} = req.body;
+        try {
+            const newSubject = await subjectService.createSubjectsForNewCiclo(ciclo);
+            res.status(201).json(newSubject);
+        } catch (error) {
+            console.error("Error al crear materia:", error);
+            res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
     async listSubjects(req: Request, res: Response): Promise<void> {
         try {
             const subjects = await subjectService.getAllSubjects();

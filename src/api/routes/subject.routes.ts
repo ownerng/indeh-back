@@ -17,6 +17,13 @@ routerSubject.post(
   subjectControllerInstance.createSubject
 );
 
+routerSubject.post(
+  '/nuevo/ciclo',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  subjectControllerInstance.createNuevoCiclo
+);
+
 routerSubject.get(
   '/',
   authenticateToken,
