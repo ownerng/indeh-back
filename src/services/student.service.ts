@@ -598,7 +598,6 @@ export class StudentService {
 
         boletin.state = is_final ? stateStudent(materiasBajas): '';
 
-        await new BoletinService().createBoletin(student, boletin);
 
         return boletin;
     }

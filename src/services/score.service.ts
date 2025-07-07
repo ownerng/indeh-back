@@ -67,6 +67,7 @@ export class ScoreService {
             return null;
         }
         score.corte1 = corte1;
+        score.notadefinitiva = (((score.corte1 ?? 0) * 0.3) + ((score.corte2 ?? 0) * 0.3) + ((score.corte3 ?? 0) * 0.4));
         return await this.scoreRepository.save(score);
     }
 
@@ -76,6 +77,7 @@ export class ScoreService {
             return null;
         }
         score.corte2 = corte2;
+        score.notadefinitiva = (((score.corte1 ?? 0) * 0.3) + ((score.corte2 ?? 0) * 0.3) + ((score.corte3 ?? 0) * 0.4));
         return await this.scoreRepository.save(score);
     }
 
@@ -85,8 +87,7 @@ export class ScoreService {
             return null;
         }
         score.corte3 = corte3;
-        if (score.corte1 !== null && score.corte2 !== null) score.notadefinitiva = ((score.corte1 * 0.3) + (score.corte2 * 0.3) + (score.corte3 * 0.4));
-        
+        score.notadefinitiva = (((score.corte1 ?? 0) * 0.3) + ((score.corte2 ?? 0) * 0.3) + ((score.corte3 ?? 0) * 0.4));
         return await this.scoreRepository.save(score);
     }
 
