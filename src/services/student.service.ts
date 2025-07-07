@@ -883,7 +883,8 @@ export class StudentService {
             const boletin = await this.getBoletinByStudentId(student.id, obse, ciclo,is_final);
             if (!boletin) continue;
             boletin.puesto = puesto;
-
+            
+            await new BoletinService().createBoletin(student, boletin);
             // Seleccionar plantilla según grado
             const templateFile = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(boletin.grado)
                 ? 'boletin6.html'
