@@ -12,6 +12,8 @@ import * as path from "path";
 import * as fs from "fs";
 import * as handlebars from "handlebars";
 import * as puppeteer from "puppeteer";
+import { BoletinService } from "./boletin.service";
+import { Jornada } from "../entities/Jornada";
 
 
 export class StudentService {
@@ -186,8 +188,8 @@ export class StudentService {
         return await this.studentRepository.save(student);
     }
 
-    async getStudentsByGrade(grado: string): Promise<PgStudent[] | null> {
-        const student = await this.studentRepository.findBy({ grado: grado });
+    async getStudentsByGrade(grado: string, jornada: Jornada): Promise<PgStudent[] | null> {
+        const student = await this.studentRepository.findBy({ grado: grado, jornada: jornada });
         if (!student) {
             return null;
         }
@@ -594,13 +596,14 @@ export class StudentService {
 
         const materiasBajas = definitivas.filter(def => def <= 2.9).length;
 
-        // Lógica para el estado del estudiante
-        // Si el grado es menor a 9, se usa la lógica especial
         boletin.state = stateStudent(materiasBajas);
+
+        await new BoletinService().createBoletin(student, boletin);
 
         return boletin;
     }
-    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; jornada: string; students: { id: number; nombres_apellidos: string; grado: string; id_score: number }[] }[]> {
+
+    async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; jornada: string; ciclo: string | null; students: { id: number; nombres_apellidos: string; grado: string; id_score: number }[] }[]> {
         const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
         const subjectsId = subjects.map(subject => subject.id);
         const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
@@ -625,6 +628,7 @@ export class StudentService {
             return {
                 nombre_asignatura: subject.nombre,
                 jornada: subject.jornada,
+                ciclo: subject.ciclo,
                 students: mappedStudents
             };
         }));
@@ -745,18 +749,52 @@ export class StudentService {
      */
     async getBoletinesByGradoWithRanking(
         grado: string,
+        jornada: Jornada,
         observaciones: Observaciones[]
     ): Promise<{ filename: string; buffer: Buffer }[]> {
-        const students = await this.studentRepository.find({ where: { grado: grado, estado: "Activo" } });
+        // Filtrar estudiantes por grado y jornada
+        const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
         const scoreService = new ScoreService();
 
-        // 1. Calcular promedios de notadefinitiva para cada estudiante
+        // 1. Calcular promedios de definitivas para cada estudiante según su grado
         const studentPromedios: { student: PgStudent; promedio: number }[] = [];
         for (const student of students) {
-            const scores: PgScore[] = await scoreService.getScoresByStudentId(student.id);
-            const definitivas = scores.map(s => s.notadefinitiva).filter(n => typeof n === "number");
-            const promedio = definitivas.length > 0
-                ? definitivas.reduce((a, b) => a + b, 0) / definitivas.length
+            // Generar el boletín para obtener definitivas correctamente según el grado
+            const boletin = await this.getBoletinByStudentId(student.id, "");
+            if (!boletin) continue;
+
+            const gradoNum = parseInt(student.grado);
+            let definitivas: number[] = [];
+            if (!isNaN(gradoNum) && gradoNum < 9) {
+                definitivas = [
+                    boletin.castellano_def,
+                    boletin.ingles_def,
+                    boletin.quimica_def,
+                    boletin.sociales_def,
+                    boletin.matematicas_def,
+                    boletin.emprendimiento_def,
+                    boletin.etica_religion_def,
+                    boletin.informatica_def,
+                    boletin.ed_fisica_def
+                ];
+            } else {
+                definitivas = [
+                    boletin.castellano_def,
+                    boletin.ingles_def,
+                    boletin.quimica_def,
+                    boletin.fisica_def,
+                    boletin.matematicas_def,
+                    boletin.emprendimiento_def,
+                    boletin.etica_religion_def,
+                    boletin.informatica_def,
+                    boletin.ed_fisica_def
+                ];
+            }
+
+            // Solo promediar definitivas válidas (números)
+            const definitivasValidas = definitivas.filter(n => typeof n === "number");
+            const promedio = definitivasValidas.length > 0
+                ? definitivasValidas.reduce((a, b) => a + b, 0) / definitivasValidas.length
                 : 0;
             studentPromedios.push({ student, promedio });
         }

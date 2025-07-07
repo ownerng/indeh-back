@@ -77,7 +77,7 @@ export class SubjectService {
         return await this.subjectRepository.save(updateSubject);
     }
 
-    async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string; jornada: Jornada}[]> {
+    async getSubjectsIdsByProfessorId(professorId: number): Promise<{id: number; nombre: string; jornada: Jornada, ciclo: string | null}[]> {
         const subjects = await this.subjectRepository.find({
             where: {
                 profesor: { id: professorId },
@@ -90,7 +90,8 @@ export class SubjectService {
         return subjects.map(subject => ({
             id: subject.id,
             nombre: subject.nombre,
-            jornada: subject.jornada
+            jornada: subject.jornada,
+            ciclo: subject.ciclo
         }));
     }
 
@@ -148,6 +149,66 @@ export class SubjectService {
             }
         } catch (error) {
             console.error("Error al inicializar las materias:", error);
+        }
+    }
+
+    /**
+     * Crea las materias del ciclo indicado para todas las jornadas, solo si no existen previamente.
+     * Recibe el ciclo como string (por ejemplo, "2025-2").
+     */
+    async createSubjectsForNewCiclo(ciclo: string): Promise<void> {
+        const subjectNames = [
+            "castellano",
+            "ingles",
+            "quimica",
+            "fisica",
+            "biologia",
+            "sociales",
+            "matematicas",
+            "emprendimiento",
+            "filosofia",
+            "etica y religion",
+            "informatica",
+            "educacion fisica",
+            "comportamiento"
+        ];
+
+        const jornadas = Object.values(Jornada);
+
+        try {
+            // Traer todas las materias existentes para ese ciclo
+            const existingSubjects = await this.subjectRepository.find({
+                where: { ciclo }
+            });
+            const existingSet = new Set(
+                existingSubjects.map(s => `${s.nombre.toLowerCase()}-${s.jornada}`)
+            );
+
+            const subjectsToCreate: PgSubject[] = [];
+
+            for (const jornada of jornadas) {
+                for (const nombre of subjectNames) {
+                    const key = `${nombre.toLowerCase()}-${jornada}`;
+                    if (!existingSet.has(key)) {
+                        const subject = new PgSubject();
+                        subject.nombre = nombre;
+                        subject.jornada = jornada as Jornada;
+                        subject.profesor = null;
+                        subject.fecha_creacion = new Date();
+                        subject.ciclo = ciclo;
+                        subjectsToCreate.push(subject);
+                    }
+                }
+            }
+
+            if (subjectsToCreate.length > 0) {
+                await this.subjectRepository.save(subjectsToCreate);
+                console.log(`Materias del ciclo ${ciclo} creadas correctamente.`);
+            } else {
+                console.log(`Todas las materias requeridas para el ciclo ${ciclo} ya existen.`);
+            }
+        } catch (error) {
+            console.error(`Error al crear materias para el ciclo ${ciclo}:`, error);
         }
     }
 

@@ -8,6 +8,7 @@ import * as puppeteer from 'puppeteer';
 import * as handlebars from 'handlebars';
 import archiver from "archiver";
 import * as stream from "stream";
+import { PDFDocument } from 'pdf-lib';
 
 const studentService = new StudentService();
 
@@ -52,9 +53,9 @@ export class StudentController {
     }
 
     async getStudentByGrade(req: Request, res: Response): Promise<Response> {
-        const { id } = req.params;
+        const { grado, jornada } = req.body;
         try {
-            const student = await studentService.getStudentsByGrade(id);
+            const student = await studentService.getStudentsByGrade(grado, jornada);
             return res.status(200).json(student);
         } catch (error) {
             console.error("Error al obtener estudiante por ID:", error);
@@ -196,27 +197,24 @@ export class StudentController {
     }
 
     async getBoletinesByGrado(req: Request, res: Response): Promise<Response> {
-        const { grado, obse } = req.body; // obse es un array de observaciones individuales
+        const { grado, obse, jornada } = req.body; // obse es un array de observaciones individuales
 
         try {
-            const pdfBuffers = await studentService.getBoletinesByGradoWithRanking(grado, obse);
+            const pdfBuffers = await studentService.getBoletinesByGradoWithRanking(grado, jornada, obse);
 
-            // Crear el zip y enviarlo por stream
-            const archive = archiver('zip');
-            const zipStream = new stream.PassThrough();
-
-            res.setHeader('Content-Type', 'application/zip');
-            res.setHeader('Content-Disposition', `attachment; filename=boletines-grado-${grado}.zip`);
-
-            archive.pipe(zipStream);
-            zipStream.pipe(res);
-
+            const mergedPdf = await PDFDocument.create();
             for (const pdf of pdfBuffers) {
-                archive.append(pdf.buffer, { name: pdf.filename });
+                const pdfDoc = await PDFDocument.load(pdf.buffer);
+                const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
             }
-            await archive.finalize();
+            const mergedPdfBytes = await mergedPdf.save();
 
-            return res; // El zip se envía por stream
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=boletines-grado-${grado}-jornada-${jornada}.pdf`);
+            res.setHeader('Content-Length', mergedPdfBytes.length.toString());
+
+            return res.status(200).end(Buffer.from(mergedPdfBytes));
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Error generando boletines.' });

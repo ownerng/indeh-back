@@ -86,8 +86,8 @@ routerStudent.get(
   express.urlencoded({ extended: true }),
   studentControllerInstance.getStudentById
 )
-routerStudent.get(
-  '/grado/:id',
+routerStudent.post(
+  '/grado/jornada',
   authenticateToken,
   authorizeRole([UserRole.EJECUTIVO]),
   express.json(), // Middleware para parsear JSON, solo para esta ruta

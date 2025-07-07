@@ -17,7 +17,7 @@ export class PgSubject {
     })
     jornada!: Jornada;
 
-    @Column({ type: "varchar", length: 255 })
+    @Column({ type: "varchar", length: 255, nullable: true})
     ciclo!: string | null;
 
 
