@@ -198,9 +198,9 @@ export class PgBoletin {
     @Column("varchar", { default: "" }) comportamiento_obs!: string;
 
     // Promedios y observaciones generales
-    @Column("float", { default: 0 }) promedio_corte1!: number;
-    @Column("float", { default: 0 }) promedio_corte2!: number;
-    @Column("float", { default: 0 }) promedio_corte3!: number;
+    @Column("float", { default: 0 }) puesto_corte1!: number;
+    @Column("float", { default: 0 }) puesto_corte2!: number;
+    @Column("float", { default: 0 }) puesto_corte3!: number;
 
     @Column("text", { nullable: true }) obs!: string;
 }

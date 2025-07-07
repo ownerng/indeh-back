@@ -357,9 +357,9 @@ export class StudentService {
             comportamiento_porcentual3: 0,
             comportamiento_def: 0,
             comportamiento_obs: '',
-            promedio_corte1: 0,
-            promedio_corte2: 0,
-            promedio_corte3: 0,
+            puesto_corte1: 0,
+            puesto_corte2: 0,
+            puesto_corte3: 0,
             obs: obse,
         };
 

@@ -164,9 +164,9 @@ export interface boletinDTO {
     comportamiento_def: number;
     comportamiento_obs: string;
 
-    promedio_corte1: number;
-    promedio_corte2: number;
-    promedio_corte3: number;
+    puesto_corte1: number;
+    puesto_corte2: number;
+    puesto_corte3: number;
 
     
     obs: string;

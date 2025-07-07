@@ -232,9 +232,9 @@ export class BoletinService {
             comportamiento_obs: boletin.comportamiento_obs,
 
             // Promedios y observaciones generales
-            promedio_corte1: boletin.promedio_corte1,
-            promedio_corte2: boletin.promedio_corte2,
-            promedio_corte3: boletin.promedio_corte3,
+            puesto_corte1: boletin.puesto_corte1,
+            puesto_corte2: boletin.puesto_corte2,
+            puesto_corte3: boletin.puesto_corte3,
             obs: boletin.obs ?? "",
         };
     }
