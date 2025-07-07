@@ -17,6 +17,10 @@ export class PgSubject {
     })
     jornada!: Jornada;
 
+    @Column({ type: "varchar", length: 255 })
+    ciclo!: string | null;
+
+
     @CreateDateColumn()
     fecha_creacion!: Date;
 
