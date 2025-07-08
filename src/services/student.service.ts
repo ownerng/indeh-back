@@ -14,6 +14,7 @@ import * as handlebars from "handlebars";
 import * as puppeteer from "puppeteer";
 import { BoletinService } from "./boletin.service";
 import { Jornada } from "../entities/Jornada";
+import * as ExcelJS from "exceljs";
 
 
 export class StudentService {
@@ -198,9 +199,22 @@ export class StudentService {
     }
 
     async getBoletinByStudentId(studentId: number, obse: string, ciclo: string, is_final: boolean): Promise<boletinDTO | null> {
+        // Traer todos los scores del estudiante
         const scores: PgScore[] = await new ScoreService().getScoresByStudentId(studentId);
+
         if (scores.length === 0) {
             return null;
+        }
+
+        // Filtrar los scores para que solo sean del ciclo solicitado
+        const subjectService = new SubjectService();
+        const filteredScores: PgScore[] = [];
+        for (const score of scores) {
+            // Traer la materia asociada al score
+            const subject = await subjectService.getSubjectById(score.id_subject.id);
+            if (subject && subject.ciclo === ciclo) {
+                filteredScores.push(score);
+            }
         }
 
         const student = await this.studentRepository.findOne({ where: { id: studentId } });
@@ -213,7 +227,7 @@ export class StudentService {
             ciclo: ciclo,
             state: '',
             jornada: student.jornada,
-            puesto: 1,
+            puesto_final: 0,
             castellano_corte1: 0,
             castellano_corte2: 0,
             castellano_corte3: 0,
@@ -364,8 +378,8 @@ export class StudentService {
         };
 
         // Procesa cada score y llena el boletin
-        for (const score of scores) {
-            const subject = await new SubjectService().getSubjectById(score.id_subject.id);
+        for (const score of filteredScores) {
+            const subject = await subjectService.getSubjectById(score.id_subject.id);
             if (!subject) continue;
 
             const nombre = subject.nombre.toLowerCase();
@@ -741,24 +755,28 @@ export class StudentService {
         }
     }
 
-    /**
-     * Genera los boletines PDF de todos los estudiantes de un grado,
-     * asignando puesto y observación individual a cada uno.
-     * Devuelve un array de { filename, buffer } para ser zipeados.
-     */
     async getBoletinesByGradoWithRanking(
         grado: string,
         jornada: Jornada,
-        observaciones: Observaciones[], ciclo: string, is_final: boolean
+        observaciones: Observaciones[], 
+        ciclo: string, 
+        is_final: boolean
     ): Promise<{ filename: string; buffer: Buffer }[]> {
-        // Filtrar estudiantes por grado y jornada
-        const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
-        const scoreService = new ScoreService();
 
-        // 1. Calcular promedios de definitivas para cada estudiante según su grado
-        const studentPromedios: { student: PgStudent; promedio: number }[] = [];
+        const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
+
+        // 1. Calcular promedios de definitivas y cortes para cada estudiante según su grado
+        type PromedioData = {
+            student: PgStudent;
+            promedioDef: number;
+            promedioCorte1: number;
+            promedioCorte2: number;
+            promedioCorte3: number;
+            boletin: boletinDTO;
+        };
+
+        const studentPromedios: PromedioData[] = [];
         for (const student of students) {
-            // Generar el boletín para obtener definitivas correctamente según el grado
             const boletin = await this.getBoletinByStudentId(student.id, "", ciclo, is_final);
             if (!boletin) continue;
 
@@ -767,6 +785,7 @@ export class StudentService {
             let corte1: number[] = [];
             let corte2: number[] = [];
             let corte3: number[] = [];
+
             if (!isNaN(gradoNum) && gradoNum < 9) {
                 definitivas = [
                     boletin.castellano_def,
@@ -858,33 +877,61 @@ export class StudentService {
                 ];
             }
 
-            // Solo promediar definitivas válidas (números)
             const definitivasValidas = definitivas.filter(n => typeof n === "number");
-            const promedio = definitivasValidas.length > 0
+            const promedioDef = definitivasValidas.length > 0
                 ? definitivasValidas.reduce((a, b) => a + b, 0) / definitivasValidas.length
                 : 0;
-            studentPromedios.push({ student, promedio });
+
+            const corte1Validas = corte1.filter(n => typeof n === "number");
+            const promedioCorte1 = corte1Validas.length > 0
+                ? corte1Validas.reduce((a, b) => a + b, 0) / corte1Validas.length
+                : 0;
+
+            const corte2Validas = corte2.filter(n => typeof n === "number");
+            const promedioCorte2 = corte2Validas.length > 0
+                ? corte2Validas.reduce((a, b) => a + b, 0) / corte2Validas.length
+                : 0;
+
+            const corte3Validas = corte3.filter(n => typeof n === "number");
+            const promedioCorte3 = corte3Validas.length > 0
+                ? corte3Validas.reduce((a, b) => a + b, 0) / corte3Validas.length
+                : 0;
+
+            studentPromedios.push({ student, promedioDef, promedioCorte1, promedioCorte2, promedioCorte3, boletin });
         }
 
-        // 2. Rankear estudiantes por promedio (mayor a menor)
-        studentPromedios.sort((a, b) => b.promedio - a.promedio);
+        // 2. Rankear estudiantes por cada promedio
+        const rankingDef = [...studentPromedios].sort((a, b) => b.promedioDef - a.promedioDef);
+        const rankingCorte1 = [...studentPromedios].sort((a, b) => b.promedioCorte1 - a.promedioCorte1);
+        const rankingCorte2 = [...studentPromedios].sort((a, b) => b.promedioCorte2 - a.promedioCorte2);
+        const rankingCorte3 = [...studentPromedios].sort((a, b) => b.promedioCorte3 - a.promedioCorte3);
 
-        // 3. Generar los boletines PDF con puesto y observación individual
+        // 3. Asignar puestos a cada estudiante en cada ranking
+        for (const [i, data] of rankingDef.entries()) {
+            data.boletin.puesto_final = i + 1;
+        }
+        for (const [i, data] of rankingCorte1.entries()) {
+            data.boletin.puesto_corte1 = i + 1;
+        }
+        for (const [i, data] of rankingCorte2.entries()) {
+            data.boletin.puesto_corte2 = i + 1;
+        }
+        for (const [i, data] of rankingCorte3.entries()) {
+            data.boletin.puesto_corte3 = i + 1;
+        }
+
+        // 4. Generar los boletines PDF con los puestos asignados
         const pdfBuffers: { filename: string; buffer: Buffer }[] = [];
-        for (let i = 0; i < studentPromedios.length; i++) {
-            const { student } = studentPromedios[i];
-            const puesto = i + 1;
+        for (const data of studentPromedios) {
+            const { student, boletin } = data;
 
             // Buscar la observación personalizada para este estudiante
             const obsObj = observaciones.find(o => o.id_student === student.id);
             const obse = obsObj ? obsObj.obse : "";
+            boletin.obs = obse;
 
-            // Generar el boletín DTO con puesto y observación
-            const boletin = await this.getBoletinByStudentId(student.id, obse, ciclo,is_final);
-            if (!boletin) continue;
-            boletin.puesto = puesto;
-            
             await new BoletinService().createBoletin(student, boletin);
+
             // Seleccionar plantilla según grado
             const templateFile = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(boletin.grado)
                 ? 'boletin6.html'
@@ -902,11 +949,296 @@ export class StudentService {
             await browser.close();
 
             pdfBuffers.push({
-                filename: `boletin-${student.nombres_apellidos.replace(/ /g, "_")}-puesto${puesto}.pdf`,
+                filename: `boletin-${student.nombres_apellidos.replace(/ /g, "_")}-puesto${boletin.puesto_final}.pdf`,
                 buffer: Buffer.from(pdfBuffer)
             });
         }
 
         return pdfBuffers;
+    }
+
+    async getBoletinByGradoWithRankingForStudent(
+        grado: string,
+        jornada: Jornada,
+        observacion: Observaciones, // ahora es un solo objeto, no array
+        ciclo: string,
+        is_final: boolean
+    ): Promise<{ filename: string; buffer: Buffer } | null> {
+
+        const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
+
+        // 1. Calcular promedios de definitivas y cortes para cada estudiante según su grado
+        type PromedioData = {
+            student: PgStudent;
+            promedioDef: number;
+            promedioCorte1: number;
+            promedioCorte2: number;
+            promedioCorte3: number;
+            boletin: boletinDTO;
+        };
+
+        const studentPromedios: PromedioData[] = [];
+        for (const student of students) {
+            const boletin = await this.getBoletinByStudentId(student.id, "", ciclo, is_final);
+            if (!boletin) continue;
+
+            const gradoNum = parseInt(student.grado);
+            let definitivas: number[] = [];
+            let corte1: number[] = [];
+            let corte2: number[] = [];
+            let corte3: number[] = [];
+
+            if (!isNaN(gradoNum) && gradoNum < 9) {
+                definitivas = [
+                    boletin.castellano_def,
+                    boletin.ingles_def,
+                    boletin.quimica_def,
+                    boletin.sociales_def,
+                    boletin.matematicas_def,
+                    boletin.emprendimiento_def,
+                    boletin.etica_religion_def,
+                    boletin.informatica_def,
+                    boletin.ed_fisica_def
+                ];
+                corte1 = [
+                    boletin.castellano_porcentual1,
+                    boletin.ingles_porcentual1,
+                    boletin.quimica_porcentual1,
+                    boletin.sociales_porcentual1,
+                    boletin.matematicas_porcentual1,
+                    boletin.emprendimiento_porcentual1,
+                    boletin.etica_religion_porcentual1,
+                    boletin.informatica_porcentual1,
+                    boletin.ed_fisica_porcentual1
+                ];
+                corte2 = [
+                    boletin.castellano_porcentual2,
+                    boletin.ingles_porcentual2,
+                    boletin.quimica_porcentual2,
+                    boletin.sociales_porcentual2,
+                    boletin.matematicas_porcentual2,
+                    boletin.emprendimiento_porcentual2,
+                    boletin.etica_religion_porcentual2,
+                    boletin.informatica_porcentual2,
+                    boletin.ed_fisica_porcentual2
+                ];corte3 = [
+                    boletin.castellano_porcentual3,
+                    boletin.ingles_porcentual3,
+                    boletin.quimica_porcentual3,
+                    boletin.sociales_porcentual3,
+                    boletin.matematicas_porcentual3,
+                    boletin.emprendimiento_porcentual3,
+                    boletin.etica_religion_porcentual3,
+                    boletin.informatica_porcentual3,
+                    boletin.ed_fisica_porcentual3
+                ];
+            } else {
+                definitivas = [
+                    boletin.castellano_def,
+                    boletin.ingles_def,
+                    boletin.quimica_def,
+                    boletin.fisica_def,
+                    boletin.matematicas_def,
+                    boletin.emprendimiento_def,
+                    boletin.etica_religion_def,
+                    boletin.informatica_def,
+                    boletin.ed_fisica_def
+                ];
+                corte1 = [
+                    boletin.castellano_porcentual1,
+                    boletin.ingles_porcentual1,
+                    boletin.quimica_porcentual1,
+                    boletin.fisica_porcentual1,
+                    boletin.matematicas_porcentual1,
+                    boletin.emprendimiento_porcentual1,
+                    boletin.etica_religion_porcentual1,
+                    boletin.informatica_porcentual1,
+                    boletin.ed_fisica_porcentual1
+                ];
+                corte2 = [
+                    boletin.castellano_porcentual2,
+                    boletin.ingles_porcentual2,
+                    boletin.quimica_porcentual2,
+                    boletin.fisica_porcentual2,
+                    boletin.matematicas_porcentual2,
+                    boletin.emprendimiento_porcentual2,
+                    boletin.etica_religion_porcentual2,
+                    boletin.informatica_porcentual2,
+                    boletin.ed_fisica_porcentual2
+                ];
+                corte3 = [
+                    boletin.castellano_porcentual3,
+                    boletin.ingles_porcentual3,
+                    boletin.quimica_porcentual3,
+                    boletin.fisica_porcentual3,
+                    boletin.matematicas_porcentual3,
+                    boletin.emprendimiento_porcentual3,
+                    boletin.etica_religion_porcentual3,
+                    boletin.informatica_porcentual3,
+                    boletin.ed_fisica_porcentual3
+                ];
+            }
+
+            const definitivasValidas = definitivas.filter(n => typeof n === "number");
+            const promedioDef = definitivasValidas.length > 0
+                ? definitivasValidas.reduce((a, b) => a + b, 0) / definitivasValidas.length
+                : 0;
+
+            const corte1Validas = corte1.filter(n => typeof n === "number");
+            const promedioCorte1 = corte1Validas.length > 0
+                ? corte1Validas.reduce((a, b) => a + b, 0) / corte1Validas.length
+                : 0;
+
+            const corte2Validas = corte2.filter(n => typeof n === "number");
+            const promedioCorte2 = corte2Validas.length > 0
+                ? corte2Validas.reduce((a, b) => a + b, 0) / corte2Validas.length
+                : 0;
+
+            const corte3Validas = corte3.filter(n => typeof n === "number");
+            const promedioCorte3 = corte3Validas.length > 0
+                ? corte3Validas.reduce((a, b) => a + b, 0) / corte3Validas.length
+                : 0;
+
+            studentPromedios.push({ student, promedioDef, promedioCorte1, promedioCorte2, promedioCorte3, boletin });
+        }
+
+        // 2. Rankear estudiantes por cada promedio
+        const rankingDef = [...studentPromedios].sort((a, b) => b.promedioDef - a.promedioDef);
+        const rankingCorte1 = [...studentPromedios].sort((a, b) => b.promedioCorte1 - a.promedioCorte1);
+        const rankingCorte2 = [...studentPromedios].sort((a, b) => b.promedioCorte2 - a.promedioCorte2);
+        const rankingCorte3 = [...studentPromedios].sort((a, b) => b.promedioCorte3 - a.promedioCorte3);
+
+        // 3. Asignar puestos a cada estudiante en cada ranking
+        for (const [i, data] of rankingDef.entries()) {
+            data.boletin.puesto_final = i + 1;
+        }
+        for (const [i, data] of rankingCorte1.entries()) {
+            data.boletin.puesto_corte1 = i + 1;
+        }
+        for (const [i, data] of rankingCorte2.entries()) {
+            data.boletin.puesto_corte2 = i + 1;
+        }
+        for (const [i, data] of rankingCorte3.entries()) {
+            data.boletin.puesto_corte3 = i + 1;
+        }
+
+        // 4. Buscar el estudiante solicitado por observacion.id_student y generar su PDF
+        const data = studentPromedios.find(d => d.student.id === observacion.id_student);
+        if (!data) return null;
+
+        const { student, boletin } = data;
+
+        // Añadir la observación específica
+        boletin.obs = observacion.obse;
+
+        await new BoletinService().createBoletin(student, boletin);
+
+        // Seleccionar plantilla según grado
+        const templateFile = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(boletin.grado)
+            ? 'boletin6.html'
+            : 'boletin.html';
+        const templatePath = path.join(process.cwd(), 'dist', 'templates', templateFile);
+        const htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
+        const compiledTemplate = handlebars.compile(htmlTemplate);
+        const content = compiledTemplate(boletin);
+
+        // Generar PDF con Puppeteer
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(content, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'Letter', printBackground: true });
+        await browser.close();
+
+        return {
+            filename: `boletin-${student.nombres_apellidos.replace(/ /g, "_")}-puesto${boletin.puesto_final}.pdf`,
+            buffer: Buffer.from(pdfBuffer)
+        };
+    }
+
+    async promoverEstudiante(studentId: number, gradoActual: string): Promise<string> {
+        const student = await this.studentRepository.findOneBy({ id: studentId });
+        if (!student) {
+            return "Estudiante no encontrado.";
+        }
+
+        const gradoNum = parseInt(gradoActual);
+
+        if (!isNaN(gradoNum)) {
+            if (gradoNum < 11) {
+                student.grado = (gradoNum + 1).toString();
+                await this.studentRepository.save(student);
+                return `El estudiante ha sido promovido al grado ${student.grado}.`;
+            } else if (gradoNum === 11) {
+                student.estado = "Graduado";
+                await this.studentRepository.save(student);
+                return "El estudiante se graduó.";
+            } else {
+                return "El grado proporcionado no es válido para promoción.";
+            }
+        } else {
+            return "El grado actual no es un número válido.";
+        }
+    }
+
+    async exportAllStudentsToExcel(): Promise<Buffer> {
+        const students = await this.studentRepository.find();
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Estudiantes");
+
+        // Encabezados según la entidad PgStudent
+        worksheet.columns = [
+            { header: "ID", key: "id", width: 10 },
+            { header: "Nombres y Apellidos", key: "nombres_apellidos", width: 30 },
+            { header: "Tipo Documento", key: "tipo_documento", width: 10 },
+            { header: "Número Documento", key: "numero_documento", width: 20 },
+            { header: "Expedición Documento", key: "expedicion_documento", width: 20 },
+            { header: "Fecha Nacimiento", key: "fecha_nacimiento", width: 15 },
+            { header: "Teléfono", key: "telefono", width: 15 },
+            { header: "Sexo", key: "sexo", width: 5 },
+            { header: "Dirección", key: "direccion", width: 30 },
+            { header: "EPS", key: "eps", width: 15 },
+            { header: "Tipo Sangre", key: "tipo_sangre", width: 8 },
+            { header: "Email", key: "email", width: 25 },
+            { header: "Estado", key: "estado", width: 10 },
+            { header: "Fecha Creación", key: "fecha_creacion", width: 20 },
+            { header: "Subsidio", key: "subsidio", width: 15 },
+            { header: "Categoría", key: "categoria", width: 15 },
+            { header: "Jornada", key: "jornada", width: 10 },
+            { header: "Grado", key: "grado", width: 8 },
+            { header: "Discapacidad", key: "discapacidad", width: 15 },
+            { header: "Fecha Modificación", key: "fecha_modificacion", width: 20 },
+            { header: "Nombres Acudiente", key: "nombres_apellidos_acudiente", width: 30 },
+            { header: "Número Documento Acudiente", key: "numero_documento_acudiente", width: 20 },
+            { header: "Expedición Documento Acudiente", key: "expedicion_documento_acudiente", width: 20 },
+            { header: "Teléfono Acudiente", key: "telefono_acudiente", width: 15 },
+            { header: "Dirección Acudiente", key: "direccion_acudiente", width: 30 },
+            { header: "Email Acudiente", key: "email_acudiente", width: 25 },
+            { header: "Empresa Acudiente", key: "empresa_acudiente", width: 20 },
+            { header: "Nombres Familiar 1", key: "nombres_apellidos_familiar1", width: 30 },
+            { header: "Número Documento Familiar 1", key: "numero_documento_familiar1", width: 20 },
+            { header: "Teléfono Familiar 1", key: "telefono_familiar1", width: 15 },
+            { header: "Parentesco Familiar 1", key: "parentesco_familiar1", width: 15 },
+            { header: "Empresa Familiar 1", key: "empresa_familiar1", width: 20 },
+            { header: "Nombres Familiar 2", key: "nombres_apellidos_familiar2", width: 30 },
+            { header: "Número Documento Familiar 2", key: "numero_documento_familiar2", width: 20 },
+            { header: "Teléfono Familiar 2", key: "telefono_familiar2", width: 15 },
+            { header: "Parentesco Familiar 2", key: "parentesco_familiar2", width: 15 },
+            { header: "Empresa Familiar 2", key: "empresa_familiar2", width: 20 },
+        ];
+
+        // Agregar filas
+        students.forEach(student => {
+            worksheet.addRow({
+                ...student,
+                fecha_nacimiento: student.fecha_nacimiento ? student.fecha_nacimiento.toISOString().split('T')[0] : "",
+                fecha_creacion: student.fecha_creacion ? student.fecha_creacion.toISOString().split('T')[0] : "",
+                fecha_modificacion: student.fecha_modificacion ? student.fecha_modificacion.toISOString().split('T')[0] : ""
+            });
+        });
+
+        // Generar el buffer del archivo Excel
+        const buffer = await workbook.xlsx.writeBuffer();
+        return Buffer.from(buffer);
     }
 }

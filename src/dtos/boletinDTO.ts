@@ -5,7 +5,7 @@ export interface boletinDTO {
     ciclo: string;
     jornada: string;
     state: string;
-    puesto: number;
+    puesto_final: number;
     //materias
     castellano_corte1: number;
     castellano_corte2: number;

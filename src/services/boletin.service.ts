@@ -6,9 +6,27 @@ import { boletinDTO } from "../dtos/boletinDTO";
 export class BoletinService {
     private boletinRepository = AppDataSource.getRepository(PgBoletin);
 
-    // Crear un boletín para un estudiante
+    // Crear o actualizar un boletín para un estudiante según el ciclo
     async createBoletin(student: PgStudent, dto: boletinDTO): Promise<PgBoletin> {
-        const boletin = this.toPgBoletin(student, dto);
+        // Buscar si ya existe un boletín para este estudiante y ciclo
+        const existingBoletin = await this.boletinRepository.findOne({
+            where: {
+                id_student: { id: student.id },
+                ciclo: dto.ciclo
+            },
+            relations: { id_student: true }
+        });
+
+        let boletin: PgBoletin;
+        if (existingBoletin) {
+            // Si existe, actualiza los datos
+            Object.assign(existingBoletin, this.toPgBoletin(student, dto));
+            boletin = existingBoletin;
+        } else {
+            // Si no existe, crea uno nuevo
+            boletin = this.toPgBoletin(student, dto);
+        }
+
         return await this.boletinRepository.save(boletin);
     }
 
@@ -42,7 +60,7 @@ export class BoletinService {
 
         boletin.id_student = {id: student.id} as PgStudent;
         boletin.state = dto.state;
-        boletin.puesto = dto.puesto;
+        boletin.puesto = dto.puesto_final;
 
         // Materias y promedios
         Object.assign(boletin, dto);
@@ -60,7 +78,7 @@ export class BoletinService {
             ciclo: "", // Calcula el ciclo si lo necesitas
             jornada: student.jornada,
             state: boletin.state,
-            puesto: boletin.puesto,
+            puesto_final: boletin.puesto,
 
             // Castellano
             castellano_corte1: boletin.castellano_corte1,

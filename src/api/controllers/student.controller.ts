@@ -111,7 +111,7 @@ export class StudentController {
 
     async getBoletinByStudentId(req: Request, res: Response): Promise<Response> {
         const { id } = req.params;
-        const { obse } = req.body;
+        const { grado, jornada, obse, ciclo, is_final } = req.body;
         const studentId = parseInt(id);
 
         if (isNaN(studentId)) {
@@ -120,65 +120,25 @@ export class StudentController {
         }
 
         try {
-            const boletin = await studentService.getBoletinByStudentId(studentId, obse);
+            // obse aquí debe ser un objeto Observaciones con id_student y obse
+            const boletinPdf = await studentService.getBoletinByGradoWithRankingForStudent(
+                grado,
+                jornada,
+                obse,
+                ciclo,
+                is_final
+            );
 
-
-            if (!boletin) {
+            if (!boletinPdf) {
                 console.warn(`Boletín no encontrado para el estudiante ID: ${studentId}`);
                 return res.status(404).json({ message: 'Boletín no encontrado.' });
             }
 
-            // Carga la plantilla HTML
-            const templateFile = ['1','2','3','4','5','6', '7', '8', '9'].includes(boletin.grado)
-                ? 'boletin6.html'
-                : 'boletin.html';
-            const templatePath = join(__dirname, '../../templates', templateFile);
-            let htmlTemplate: string;
-            try {
-                htmlTemplate = readFileSync(templatePath, 'utf-8');
-            } catch (readError) {
-                console.error(`Error al leer la plantilla HTML en ${templatePath}:`, readError);
-                return res.status(500).json({ message: 'Error al cargar la plantilla del boletín.' });
-            }
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename=${boletinPdf.filename}`);
+            res.setHeader('Content-Length', boletinPdf.buffer.length.toString());
 
-            // Compila la plantilla con Handlebars
-            const compiledTemplate = handlebars.compile(htmlTemplate);
-            const content = compiledTemplate(boletin);
-
-            let browser;
-            try {
-                browser = await puppeteer.launch({
-                    headless: true,
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                });
-                const page = await browser.newPage();
-
-                await page.setContent(content, { waitUntil: 'networkidle0' });
-
-                const pdfBuffer = await page.pdf({
-                    format: 'Letter',
-                    printBackground: true,
-                    margin: {
-                        top: '20px',
-                        right: '20px',
-                        bottom: '20px',
-                        left: '20px',
-                    },
-                });
-                res.setHeader('Content-Type', 'application/pdf');
-                res.setHeader('Content-Disposition', `inline; filename=boletin-${studentId}.pdf`); 
-                res.setHeader('Content-Length', pdfBuffer.length.toString());
-
-                return res.status(200).end(pdfBuffer);
-
-            } catch (puppeteerError) {
-                console.error("Error al generar el PDF con Puppeteer:", puppeteerError);
-                return res.status(500).json({ message: 'Error al generar el PDF del boletín.' });
-            } finally {
-                if (browser) {
-                    await browser.close();
-                }
-            }
+            return res.status(200).end(boletinPdf.buffer);
 
         } catch (error) {
             console.error(`Error general al obtener boletín por ID de estudiante ${studentId}:`, error);
@@ -197,10 +157,10 @@ export class StudentController {
     }
 
     async getBoletinesByGrado(req: Request, res: Response): Promise<Response> {
-        const { grado, obse, jornada } = req.body; // obse es un array de observaciones individuales
+        const { grado, obse, jornada, ciclo, is_final } = req.body; // obse es un array de observaciones individuales
 
         try {
-            const pdfBuffers = await studentService.getBoletinesByGradoWithRanking(grado, jornada, obse);
+            const pdfBuffers = await studentService.getBoletinesByGradoWithRanking(grado, jornada, obse, ciclo, is_final);
 
             const mergedPdf = await PDFDocument.create();
             for (const pdf of pdfBuffers) {
@@ -218,6 +178,38 @@ export class StudentController {
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Error generando boletines.' });
+        }
+    }
+
+    async promoverEstudiante(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+        const { grado } = req.body;
+        const studentId = parseInt(id);
+
+        if (isNaN(studentId)) {
+            console.error("Error: ID de estudiante no válido.");
+            return res.status(400).json({ message: 'ID de estudiante no válido.' });
+        }
+
+        try {
+            const result = await studentService.promoverEstudiante(studentId, grado);
+            return res.status(200).json({ message: result });
+        } catch (error) {
+            console.error("Error al promover estudiante:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
+
+    async exportAllStudentsToExcel(req: Request, res: Response): Promise<Response> {
+        try {
+            const excelBuffer = await studentService.exportAllStudentsToExcel();
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=estudiantes.xlsx');
+            res.setHeader('Content-Length', excelBuffer.length.toString());
+            return res.status(200).end(excelBuffer);
+        } catch (error) {
+            console.error("Error al exportar estudiantes a Excel:", error);
+            return res.status(500).json({ message: 'Error exportando estudiantes a Excel.' });
         }
     }
 }

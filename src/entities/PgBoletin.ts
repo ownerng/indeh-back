@@ -22,6 +22,10 @@ export class PgBoletin {
     @CreateDateColumn()
     fecha_creacion!: Date;
 
+
+    @Column("varchar", { nullable: true })
+    ciclo!: string | null;
+
     @Column()
     state!: string;
 

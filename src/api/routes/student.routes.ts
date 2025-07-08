@@ -42,6 +42,15 @@ routerStudent.post(
   studentControllerInstance.getBoletinByStudentId
 )
 
+routerStudent.get(
+  '/excel',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.exportAllStudentsToExcel
+)
+
 routerStudent.post(
   '/boletin',
   authenticateToken,
@@ -67,6 +76,15 @@ routerStudent.put(
   express.json(), // Middleware para parsear JSON, solo para esta ruta
   express.urlencoded({ extended: true }),
   studentControllerInstance.updateStudent
+)
+
+routerStudent.put(
+  '/promover/:id',
+  authenticateToken,
+  authorizeRole([UserRole.EJECUTIVO]),
+  express.json(), // Middleware para parsear JSON, solo para esta ruta
+  express.urlencoded({ extended: true }),
+  studentControllerInstance.promoverEstudiante
 )
 
 routerStudent.delete(

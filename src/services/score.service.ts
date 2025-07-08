@@ -107,6 +107,18 @@ export class ScoreService {
             id_subject: score.id_subject.id
         }));
     }
+    async getScoresByCiclo(ciclo: string): Promise<PgScore[]> {
+        // Trae todos los scores con la relación a la materia (id_subject)
+        const scores = await this.scoreRepository.find({
+            relations: {
+                id_student: true,
+                id_subject: true,
+            }
+        });
+
+        // Filtra los scores donde la materia (id_subject) tenga el ciclo indicado
+        return scores.filter(score => score.id_subject && score.id_subject.ciclo === ciclo);
+    }
     private toPgScore(score: CreateScoreDTO): PgScore {
         const pgScore = new PgScore();
         pgScore.id_student = {id: score.id_student} as PgStudent;

@@ -39,8 +39,8 @@ export class PgStudent {
     @Column({ type: "varchar", length: 255 })
     email!: string;
 
-    @Column({ type: "enum", enum: ["Activo", "Inactivo"], default: "Activo" })
-    estado!: "Activo" | "Inactivo";
+    @Column({ type: "enum", enum: ["Activo", "Inactivo", "Graduado"], default: "Activo" })
+    estado!: "Activo" | "Inactivo" | "Graduado";
 
     @CreateDateColumn()
     fecha_creacion!: Date;
