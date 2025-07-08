@@ -39,6 +39,6 @@ export const desem = (nota: number) => {
     } else if(nota > 4.5 && nota <= 5) {
         return 'Superior';
     } else {
-        return 'No evaluado';
+        return '';
     }
 }

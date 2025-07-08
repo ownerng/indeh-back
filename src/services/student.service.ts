@@ -62,8 +62,11 @@ export class StudentService {
     }
 
     async getAllStudents(): Promise<PgStudent[]> {
-        return await this.studentRepository.find();
-    }
+    return await this.studentRepository.find({
+        where: { estado: 'Activo' }
+    });
+}
+
 
     async getStudentById(id: number): Promise<PgStudent | null> {
         const student = await this.studentRepository.findOneBy({ id: id });
@@ -397,7 +400,7 @@ export class StudentService {
                 boletin.castellano_desem1 = desem(score.corte1 ?? 0);
                 boletin.castellano_desem2 = desem(score.corte2 ?? 0);
                 boletin.castellano_desem3 = desem(score.corte3 ?? 0);
-                boletin.castellano_obs = obs(score.notadefinitiva ?? 0);
+                boletin.castellano_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "biologia") {
                 boletin.biologia_corte1 = score.corte1 ?? 0;
                 boletin.biologia_corte2 = score.corte2 ?? 0;
@@ -412,7 +415,7 @@ export class StudentService {
                 boletin.biologia_desem2 = desem(score.corte2 ?? 0);
                 boletin.biologia_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.sociales_obs = obs(score.notadefinitiva ?? 0);
+                boletin.biologia_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "sociales") {
                 boletin.sociales_corte1 = score.corte1 ?? 0;
                 boletin.sociales_corte2 = score.corte2 ?? 0;
@@ -427,7 +430,7 @@ export class StudentService {
                 boletin.sociales_desem2 = desem(score.corte2 ?? 0);
                 boletin.sociales_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.sociales_obs = obs(score.notadefinitiva ?? 0);
+                boletin.sociales_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "ingles") {
                 boletin.ingles_corte1 = score.corte1 ?? 0;
                 boletin.ingles_corte2 = score.corte2 ?? 0;
@@ -442,7 +445,7 @@ export class StudentService {
                 boletin.ingles_desem2 = desem(score.corte2 ?? 0);
                 boletin.ingles_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.ingles_obs = obs(score.notadefinitiva ?? 0);
+                boletin.ingles_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "quimica") {
                 boletin.quimica_corte1 = score.corte1 ?? 0;
                 boletin.quimica_corte2 = score.corte2 ?? 0;
@@ -457,7 +460,7 @@ export class StudentService {
                 boletin.quimica_desem2 = desem(score.corte2 ?? 0);
                 boletin.quimica_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.quimica_obs = obs(score.notadefinitiva ?? 0);
+                boletin.quimica_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "fisica") {
                 boletin.fisica_corte1 = score.corte1 ?? 0;
                 boletin.fisica_corte2 = score.corte2 ?? 0;
@@ -472,7 +475,7 @@ export class StudentService {
                 boletin.fisica_desem2 = desem(score.corte2 ?? 0);
                 boletin.fisica_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.fisica_obs = obs(score.notadefinitiva ?? 0);
+                boletin.fisica_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "matematicas") {
                 boletin.matematicas_corte1 = score.corte1 ?? 0;
                 boletin.matematicas_corte2 = score.corte2 ?? 0;
@@ -487,7 +490,7 @@ export class StudentService {
                 boletin.matematicas_desem2 = desem(score.corte2 ?? 0);
                 boletin.matematicas_desem3 = desem(score.corte3 ?? 0);
 
-                boletin.matematicas_obs = obs(score.notadefinitiva ?? 0);
+                boletin.matematicas_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "emprendimiento") {
                 boletin.emprendimiento_corte1 = score.corte1 ?? 0;
                 boletin.emprendimiento_corte2 = score.corte2 ?? 0;
@@ -501,7 +504,7 @@ export class StudentService {
                 boletin.emprendimiento_desem1 = desem(score.corte1 ?? 0);
                 boletin.emprendimiento_desem2 = desem(score.corte2 ?? 0);
                 boletin.emprendimiento_desem3 = desem(score.corte3 ?? 0);
-                boletin.emprendimiento_obs = obs(score.notadefinitiva ?? 0);
+                boletin.emprendimiento_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
 
             } else if (nombre === "filosofia") {
                 boletin.filosofia_corte1 = score.corte1 ?? 0;
@@ -516,7 +519,7 @@ export class StudentService {
                 boletin.filosofia_desem1 = desem(score.corte1 ?? 0);
                 boletin.filosofia_desem2 = desem(score.corte2 ?? 0);
                 boletin.filosofia_desem3 = desem(score.corte3 ?? 0);
-                boletin.filosofia_obs = obs(score.notadefinitiva ?? 0);
+                boletin.filosofia_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             }
             else if (nombre === "etica y religion" || nombre === "etica_religion") {
                 boletin.etica_religion_corte1 = score.corte1 ?? 0;
@@ -531,7 +534,7 @@ export class StudentService {
                 boletin.etica_religion_desem1 = desem(score.corte1 ?? 0);
                 boletin.etica_religion_desem2 = desem(score.corte2 ?? 0);
                 boletin.etica_religion_desem3 = desem(score.corte3 ?? 0);
-                boletin.etica_religion_obs = obs(score.notadefinitiva ?? 0);
+                boletin.etica_religion_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "informatica") {
                 boletin.informatica_corte1 = score.corte1 ?? 0;
                 boletin.informatica_corte2 = score.corte2 ?? 0;
@@ -545,7 +548,7 @@ export class StudentService {
                 boletin.informatica_desem1 = desem(score.corte1 ?? 0);
                 boletin.informatica_desem2 = desem(score.corte2 ?? 0);
                 boletin.informatica_desem3 = desem(score.corte3 ?? 0);
-                boletin.informatica_obs = obs(score.notadefinitiva ?? 0);
+                boletin.informatica_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "educacion fisica" || nombre === "ed_fisica") {
                 boletin.ed_fisica_corte1 = score.corte1 ?? 0;
                 boletin.ed_fisica_corte2 = score.corte2 ?? 0;
@@ -559,7 +562,7 @@ export class StudentService {
                 boletin.ed_fisica_desem1 = desem(score.corte1 ?? 0);
                 boletin.ed_fisica_desem2 = desem(score.corte2 ?? 0);
                 boletin.ed_fisica_desem3 = desem(score.corte3 ?? 0);
-                boletin.ed_fisica_obs = obs(score.notadefinitiva ?? 0);
+                boletin.ed_fisica_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             } else if (nombre === "comportamiento") {
                 boletin.comportamiento_corte1 = score.corte1 ?? 0;
                 boletin.comportamiento_corte2 = score.corte2 ?? 0;
@@ -573,7 +576,7 @@ export class StudentService {
                 boletin.comportamiento_desem1 = desem(score.corte1 ?? 0);
                 boletin.comportamiento_desem2 = desem(score.corte2 ?? 0);
                 boletin.comportamiento_desem3 = desem(score.corte3 ?? 0);
-                boletin.comportamiento_obs = obs(score.notadefinitiva ?? 0);
+                boletin.comportamiento_obs = is_final ? obs(score.notadefinitiva ?? 0) : '';
             }
         }
 
@@ -960,7 +963,7 @@ export class StudentService {
     async getBoletinByGradoWithRankingForStudent(
         grado: string,
         jornada: Jornada,
-        observacion: Observaciones, // ahora es un solo objeto, no array
+        observacion: Observaciones, 
         ciclo: string,
         is_final: boolean
     ): Promise<{ filename: string; buffer: Buffer } | null> {
@@ -1180,7 +1183,7 @@ export class StudentService {
         }
     }
 
-    async exportAllStudentsToExcel(): Promise<Buffer> {
+   async exportAllStudentsToExcel(): Promise<Buffer> {
         const students = await this.studentRepository.find();
 
         const workbook = new ExcelJS.Workbook();
@@ -1229,11 +1232,25 @@ export class StudentService {
 
         // Agregar filas
         students.forEach(student => {
+            // Helper function to safely convert to ISO string or empty string
+            const toISOStringOrEmpty = (dateValue: any) => {
+                if (dateValue instanceof Date) {
+                    return dateValue.toISOString().split('T')[0];
+                }
+                // If it's a string, try to parse it as a Date
+                if (typeof dateValue === 'string' && dateValue) {
+                    const date = new Date(dateValue);
+                    // Check if the parsed date is valid before converting
+                    return isNaN(date.getTime()) ? "" : date.toISOString().split('T')[0];
+                }
+                return "";
+            };
+
             worksheet.addRow({
                 ...student,
-                fecha_nacimiento: student.fecha_nacimiento ? student.fecha_nacimiento.toISOString().split('T')[0] : "",
-                fecha_creacion: student.fecha_creacion ? student.fecha_creacion.toISOString().split('T')[0] : "",
-                fecha_modificacion: student.fecha_modificacion ? student.fecha_modificacion.toISOString().split('T')[0] : ""
+                fecha_nacimiento: toISOStringOrEmpty(student.fecha_nacimiento),
+                fecha_creacion: toISOStringOrEmpty(student.fecha_creacion),
+                fecha_modificacion: toISOStringOrEmpty(student.fecha_modificacion)
             });
         });
 

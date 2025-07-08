@@ -111,7 +111,7 @@ export class StudentController {
 
     async getBoletinByStudentId(req: Request, res: Response): Promise<Response> {
         const { id } = req.params;
-        const { grado, jornada, obse, ciclo, is_final } = req.body;
+        const { grado, jornada, obs, ciclo, is_final } = req.body;
         const studentId = parseInt(id);
 
         if (isNaN(studentId)) {
@@ -124,7 +124,7 @@ export class StudentController {
             const boletinPdf = await studentService.getBoletinByGradoWithRankingForStudent(
                 grado,
                 jornada,
-                obse,
+                obs,
                 ciclo,
                 is_final
             );
