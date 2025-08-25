@@ -713,33 +713,32 @@ export class StudentService {
             const studentId = student.id;
             if (!studentId) continue;
 
-            // Obtener los scores actuales del estudiante
-            const currentScores = await scoreService.getScoresByStudentId(student.id);
-
-            // 1. ELIMINAR DUPLICADOS EXISTENTES
+            // 1. ELIMINAR TODOS LOS DUPLICADOS EXISTENTES PRIMERO
+            let currentScores = await scoreService.getScoresByStudentId(student.id);
+            
             // Crear un Map para trackear las combinaciones únicas
-            const uniqueCombinations = new Map<string, number>(); // key: "student_id-subject_id", value: score_id
+            const seenCombinations = new Set<string>();
             const duplicatesToDelete: number[] = [];
 
             for (const score of currentScores) {
                 const combination = `${score.id_student}-${score.id_subject.id}`;
                 
-                if (uniqueCombinations.has(combination)) {
+                if (seenCombinations.has(combination)) {
                     // Ya existe esta combinación, marcar este score para eliminar
                     duplicatesToDelete.push(score.id);
                 } else {
                     // Primera vez que vemos esta combinación, conservarla
-                    uniqueCombinations.set(combination, score.id);
+                    seenCombinations.add(combination);
                 }
             }
 
-            // Eliminar los duplicados encontrados
+            // Eliminar todos los duplicados encontrados
             for (const scoreIdToDelete of duplicatesToDelete) {
                 await scoreService.deleteScoreById(scoreIdToDelete);
             }
 
             // 2. OBTENER SCORES ACTUALIZADOS (sin duplicados)
-            const cleanCurrentScores = await scoreService.getScoresByStudentId(student.id);
+            currentScores = await scoreService.getScoresByStudentId(student.id);
 
             // 3. FILTRAR MATERIAS SEGÚN JORNADA Y GRADO
             const subjectsForJornada = allSubjects.filter(s => s.jornada === student.jornada);
@@ -762,31 +761,30 @@ export class StudentService {
                 filteredSubjects = subjectsForJornada;
             }
 
-            // 4. CREAR SCORES FALTANTES
-            // Crear un Set con las combinaciones existentes (ya limpias de duplicados)
-            const existingCombinations = new Set(
-                cleanCurrentScores.map(score => `${score.id_student}-${score.id_subject.id}`)
+            // 4. ELIMINAR SCORES QUE NO CORRESPONDEN A LAS MATERIAS VÁLIDAS PRIMERO
+            const validSubjectIds = new Set(filteredSubjects.map(s => s.id));
+            
+            for (const score of currentScores) {
+                if (!validSubjectIds.has(score.id_subject.id)) {
+                    await scoreService.deleteScoreById(score.id);
+                }
+            }
+
+            // 5. OBTENER SCORES FINALES DESPUÉS DE LIMPIAR
+            const finalCurrentScores = await scoreService.getScoresByStudentId(student.id);
+            
+            // 6. CREAR SCORES FALTANTES
+            const existingSubjectIds = new Set(
+                finalCurrentScores.map(score => score.id_subject.id)
             );
 
-            // Solo crear scores que NO existan ya
             for (const subject of filteredSubjects) {
-                const combination = `${student.id}-${subject.id}`;
-                
-                if (!existingCombinations.has(combination)) {
-                    // Solo crear si no existe la combinación
+                if (!existingSubjectIds.has(subject.id)) {
+                    // Solo crear si no existe ya
                     await scoreService.createScore({
                         id_student: student.id,
                         id_subject: subject.id
                     });
-                }
-            }
-
-            // 5. ELIMINAR SCORES QUE NO CORRESPONDEN A LAS MATERIAS VÁLIDAS
-            const validSubjectIds = new Set(filteredSubjects.map(s => s.id));
-            
-            for (const score of cleanCurrentScores) {
-                if (!validSubjectIds.has(score.id_subject.id)) {
-                    await scoreService.deleteScoreById(score.id);
                 }
             }
         }
