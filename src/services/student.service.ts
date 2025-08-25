@@ -713,7 +713,35 @@ export class StudentService {
             const studentId = student.id;
             if (!studentId) continue;
 
-            // Filtrar materias según la jornada y grado del estudiante
+            // Obtener los scores actuales del estudiante
+            const currentScores = await scoreService.getScoresByStudentId(student.id);
+
+            // 1. ELIMINAR DUPLICADOS EXISTENTES
+            // Crear un Map para trackear las combinaciones únicas
+            const uniqueCombinations = new Map<string, number>(); // key: "student_id-subject_id", value: score_id
+            const duplicatesToDelete: number[] = [];
+
+            for (const score of currentScores) {
+                const combination = `${score.id_student}-${score.id_subject.id}`;
+                
+                if (uniqueCombinations.has(combination)) {
+                    // Ya existe esta combinación, marcar este score para eliminar
+                    duplicatesToDelete.push(score.id);
+                } else {
+                    // Primera vez que vemos esta combinación, conservarla
+                    uniqueCombinations.set(combination, score.id);
+                }
+            }
+
+            // Eliminar los duplicados encontrados
+            for (const scoreIdToDelete of duplicatesToDelete) {
+                await scoreService.deleteScoreById(scoreIdToDelete);
+            }
+
+            // 2. OBTENER SCORES ACTUALIZADOS (sin duplicados)
+            const cleanCurrentScores = await scoreService.getScoresByStudentId(student.id);
+
+            // 3. FILTRAR MATERIAS SEGÚN JORNADA Y GRADO
             const subjectsForJornada = allSubjects.filter(s => s.jornada === student.jornada);
             const gradoNum = parseInt(student.grado);
             let filteredSubjects: typeof subjectsForJornada = [];
@@ -734,27 +762,18 @@ export class StudentService {
                 filteredSubjects = subjectsForJornada;
             }
 
-            // Obtener los scores actuales del estudiante
-            const currentScores = await scoreService.getScoresByStudentId(student.id);
-
-            // Mapear materias actuales por nombre (para comparar)
-            const currentScoresBySubjectName = new Map(
-                currentScores.map(score => [score.id_subject.nombre.toLowerCase(), score])
+            // 4. CREAR SCORES FALTANTES
+            // Crear un Set con las combinaciones existentes (ya limpias de duplicados)
+            const existingCombinations = new Set(
+                cleanCurrentScores.map(score => `${score.id_student}-${score.id_subject.id}`)
             );
 
+            // Solo crear scores que NO existan ya
             for (const subject of filteredSubjects) {
-                const subjectName = subject.nombre.toLowerCase();
-                const existingScore = currentScoresBySubjectName.get(subjectName);
-
-                if (existingScore) {
-                    // Actualiza el id_subject del score existente a la materia de la nueva jornada
-                    await scoreService.updatescoreById(existingScore.id, {
-                        id_student: student.id,
-                        id_subject: subject.id
-                    });
-                    currentScoresBySubjectName.delete(subjectName);
-                } else {
-                    // Si no existe score para esta materia, crea uno nuevo
+                const combination = `${student.id}-${subject.id}`;
+                
+                if (!existingCombinations.has(combination)) {
+                    // Solo crear si no existe la combinación
                     await scoreService.createScore({
                         id_student: student.id,
                         id_subject: subject.id
@@ -762,9 +781,13 @@ export class StudentService {
                 }
             }
 
-            // Elimina scores de materias que ya no están en la nueva jornada y grado
-            for (const score of currentScoresBySubjectName.values()) {
-                await scoreService.deleteScoreById(score.id);
+            // 5. ELIMINAR SCORES QUE NO CORRESPONDEN A LAS MATERIAS VÁLIDAS
+            const validSubjectIds = new Set(filteredSubjects.map(s => s.id));
+            
+            for (const score of cleanCurrentScores) {
+                if (!validSubjectIds.has(score.id_subject.id)) {
+                    await scoreService.deleteScoreById(score.id);
+                }
             }
         }
     }
