@@ -620,37 +620,48 @@ export class StudentService {
     }
 
     async getStudentsByProfessorId(professorId: number): Promise<{ nombre_asignatura: string; jornada: string; ciclo: string | null; students: { id: number; nombres_apellidos: string; grado: string; id_score: number }[] }[]> {
-        const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
-        const subjectsId = subjects.map(subject => subject.id);
-        const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
-        const result = await Promise.all(subjects.map(async subject => {
-            const subjectsScores = studentsScores.filter(score => score.id_subject === subject.id);
-            const studentIds = subjectsScores.map(score => score.id_student);
-            const students = await this.studentRepository.find({
-                where: { id: In(studentIds) },
-                select: ["id", "nombres_apellidos", "grado", "estado"]
-            });
+    const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
+    const subjectsId = subjects.map(subject => subject.id);
+    const studentsScores = await new ScoreService().getScoresBySubjectId(subjectsId);
+    
+    const result = await Promise.all(subjects.map(async subject => {
+        // Filtrar scores para esta materia específica
+        const subjectsScores = studentsScores.filter(score => score.id_subject === subject.id);
+        const studentIds = subjectsScores.map(score => score.id_student);
+        
+        const students = await this.studentRepository.find({
+            where: { id: In(studentIds), estado: "Activo" },
+            select: ["id", "nombres_apellidos", "grado", "estado"]
+        });
 
-            const mappedStudents = subjectsScores.map(score => {
-                const student = students.find(s => s.id === score.id_student && s.estado === "Activo");
-                return student ? {
-                    id: student.id,
-                    nombres_apellidos: student.nombres_apellidos,
-                    grado: student.grado,
-                    id_score: score.id
-                } : null
-            }).filter(Boolean) as { id: number; nombres_apellidos: string; grado: string; id_score: number; }[];
+        // Crear un Map para evitar duplicados por estudiante
+        const studentMap = new Map<number, { id: number; nombres_apellidos: string; grado: string; id_score: number }>();
+        
+        subjectsScores.forEach(score => {
+            const student = students.find(s => s.id === score.id_student);
+            if (student && student.estado === "Activo") {
+                // Solo agregar si no existe o si este score es más reciente
+                if (!studentMap.has(student.id)) {
+                    studentMap.set(student.id, {
+                        id: student.id,
+                        nombres_apellidos: student.nombres_apellidos,
+                        grado: student.grado,
+                        id_score: score.id
+                    });
+                }
+            }
+        });
 
-            return {
-                nombre_asignatura: subject.nombre,
-                jornada: subject.jornada,
-                ciclo: subject.ciclo,
-                students: mappedStudents
-            };
-        }));
+        return {
+            nombre_asignatura: subject.nombre,
+            jornada: subject.jornada,
+            ciclo: subject.ciclo,
+            students: Array.from(studentMap.values())
+        };
+    }));
 
-        return result;
-    }
+    return result;
+}
     private toPgStudent(student: CreateStudentDTO): PgStudent {
         const pgStudent = new PgStudent();
         pgStudent.nombres_apellidos = student.nombres_apellidos;
