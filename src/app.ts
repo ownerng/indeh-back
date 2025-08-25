@@ -15,8 +15,8 @@ dotenv.config();
 const app: Application = express();
 const port = process.env.SERVER_PORT || 3000;
 const corsOptions = {
-  // origin: 'https://notas.indeh.com.co', // <--- Especifica el origen de tu frontend
-  origin: 'http://localhost:5173',
+  origin: 'https://notas.indeh.com.co', // <--- Especifica el origen de tu frontend
+  // origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // <--- Métodos permitidos
   allowedHeaders: ['Content-Type', 'Authorization'], // <--- Encabezados permitidos (importante para tokens)
   credentials: true // Si necesitas manejar cookies o sesiones (no aplica directamente para JWT en este caso, pero es buena práctica)
