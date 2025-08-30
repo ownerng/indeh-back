@@ -209,17 +209,17 @@ export class StudentService {
             return null;
         }
 
-        // Obtener información del estudiante para filtrar por jornada
+        // OBTENER EL ESTUDIANTE PRIMERO PARA FILTRAR POR JORNADA
         const student = await this.studentRepository.findOne({ where: { id: studentId } });
         if (!student) return null;
 
-        // Filtrar los scores para que solo sean del ciclo Y jornada correctos
+        // Filtrar los scores para que solo sean del ciclo Y jornada del estudiante
         const subjectService = new SubjectService();
         const filteredScores: PgScore[] = [];
         for (const score of scores) {
             // Traer la materia asociada al score
             const subject = await subjectService.getSubjectById(score.id_subject.id);
-            // AQUÍ ESTÁ LA CORRECCIÓN: filtrar también por jornada del estudiante
+            // AQUÍ ESTÁ LA CORRECCIÓN: filtrar por ciclo Y jornada
             if (subject && subject.ciclo === ciclo && subject.jornada === student.jornada) {
                 filteredScores.push(score);
             }
@@ -382,7 +382,7 @@ export class StudentService {
             obs: obse,
         };
 
-        // Procesa cada score y llena el boletin
+        // Procesa cada score y llena el boletin - USAR filteredScores en lugar de scores
         for (const score of filteredScores) {
             const subject = await subjectService.getSubjectById(score.id_subject.id);
             if (!subject) continue;
@@ -617,7 +617,6 @@ export class StudentService {
 
         boletin.state = is_final ? stateStudent(materiasBajas): '';
 
-
         return boletin;
     }
 
@@ -642,7 +641,7 @@ export class StudentService {
         subjectsScores.forEach(score => {
             const student = students.find(s => s.id === score.id_student);
             if (student && student.estado === "Activo") {
-                // Solo agregar si no existe o si este score es más reciente
+                // Solo agregar si no existe
                 if (!studentMap.has(student.id)) {
                     studentMap.set(student.id, {
                         id: student.id,
@@ -800,18 +799,7 @@ export class StudentService {
         is_final: boolean
     ): Promise<{ filename: string; buffer: Buffer }[]> {
 
-        // CORRECCIÓN: Asegurar que la consulta de estudiantes filtre correctamente por jornada
-        const students = await this.studentRepository.find({ 
-            where: { 
-                grado: grado, 
-                jornada: jornada, 
-                estado: "Activo" 
-            } 
-        });
-
-        // Verificar que efectivamente tenemos estudiantes de la jornada correcta
-        console.log(`Estudiantes encontrados para grado ${grado}, jornada ${jornada}:`, students.length);
-        students.forEach(s => console.log(`- ${s.nombres_apellidos} (Jornada: ${s.jornada})`));
+        const students = await this.studentRepository.find({ where: { grado: grado, jornada: jornada, estado: "Activo" } });
 
         // 1. Calcular promedios de definitivas y cortes para cada estudiante según su grado
         type PromedioData = {
@@ -825,23 +813,8 @@ export class StudentService {
 
         const studentPromedios: PromedioData[] = [];
         for (const student of students) {
-            // CORRECCIÓN: Verificar que el estudiante sea de la jornada correcta antes de procesar
-            if (student.jornada !== jornada) {
-                console.warn(`Estudiante ${student.nombres_apellidos} tiene jornada ${student.jornada}, esperaba ${jornada}`);
-                continue;
-            }
-
             const boletin = await this.getBoletinByStudentId(student.id, "", ciclo, is_final);
-            if (!boletin) {
-                console.warn(`No se pudo generar boletín para estudiante ${student.nombres_apellidos}`);
-                continue;
-            }
-
-            // Verificar que el boletín generado sea de la jornada correcta
-            if (boletin.jornada !== jornada) {
-                console.warn(`Boletín generado para ${student.nombres_apellidos} tiene jornada ${boletin.jornada}, esperaba ${jornada}`);
-                continue;
-            }
+            if (!boletin) continue;
 
             const gradoNum = parseInt(student.grado);
             let definitivas: number[] = [];
@@ -882,8 +855,7 @@ export class StudentService {
                     boletin.etica_religion_porcentual2,
                     boletin.informatica_porcentual2,
                     boletin.ed_fisica_porcentual2
-                ];
-                corte3 = [
+                ];corte3 = [
                     boletin.castellano_porcentual3,
                     boletin.ingles_porcentual3,
                     boletin.quimica_porcentual3,
@@ -941,30 +913,28 @@ export class StudentService {
                 ];
             }
 
-            const definitivasValidas = definitivas.filter(n => typeof n === "number" && n > 0);
+            const definitivasValidas = definitivas.filter(n => typeof n === "number");
             const promedioDef = definitivasValidas.length > 0
                 ? definitivasValidas.reduce((a, b) => a + b, 0) / definitivasValidas.length
                 : 0;
 
-            const corte1Validas = corte1.filter(n => typeof n === "number" && n > 0);
+            const corte1Validas = corte1.filter(n => typeof n === "number");
             const promedioCorte1 = corte1Validas.length > 0
                 ? corte1Validas.reduce((a, b) => a + b, 0) / corte1Validas.length
                 : 0;
 
-            const corte2Validas = corte2.filter(n => typeof n === "number" && n > 0);
+            const corte2Validas = corte2.filter(n => typeof n === "number");
             const promedioCorte2 = corte2Validas.length > 0
                 ? corte2Validas.reduce((a, b) => a + b, 0) / corte2Validas.length
                 : 0;
 
-            const corte3Validas = corte3.filter(n => typeof n === "number" && n > 0);
+            const corte3Validas = corte3.filter(n => typeof n === "number");
             const promedioCorte3 = corte3Validas.length > 0
                 ? corte3Validas.reduce((a, b) => a + b, 0) / corte3Validas.length
                 : 0;
 
             studentPromedios.push({ student, promedioDef, promedioCorte1, promedioCorte2, promedioCorte3, boletin });
         }
-
-        console.log(`Estudiantes procesados exitosamente: ${studentPromedios.length}`);
 
         // 2. Rankear estudiantes por cada promedio
         const rankingDef = [...studentPromedios].sort((a, b) => b.promedioDef - a.promedioDef);
