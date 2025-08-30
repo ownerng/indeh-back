@@ -209,19 +209,21 @@ export class StudentService {
             return null;
         }
 
-        // Filtrar los scores para que solo sean del ciclo solicitado
+        // Obtener información del estudiante para filtrar por jornada
+        const student = await this.studentRepository.findOne({ where: { id: studentId } });
+        if (!student) return null;
+
+        // Filtrar los scores para que solo sean del ciclo Y jornada correctos
         const subjectService = new SubjectService();
         const filteredScores: PgScore[] = [];
         for (const score of scores) {
             // Traer la materia asociada al score
             const subject = await subjectService.getSubjectById(score.id_subject.id);
-            if (subject && subject.ciclo === ciclo) {
+            // AQUÍ ESTÁ LA CORRECCIÓN: filtrar también por jornada del estudiante
+            if (subject && subject.ciclo === ciclo && subject.jornada === student.jornada) {
                 filteredScores.push(score);
             }
         }
-
-        const student = await this.studentRepository.findOne({ where: { id: studentId } });
-        if (!student) return null;
 
         const boletin: boletinDTO = {
             fecha_creacion: new Date().toLocaleDateString(),
