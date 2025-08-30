@@ -193,7 +193,7 @@ export class StudentService {
     }
 
     async getStudentsByGrade(grado: string, jornada: Jornada): Promise<PgStudent[] | null> {
-        const student = await this.studentRepository.findBy({ grado: grado, jornada: jornada });
+        const student = await this.studentRepository.findBy({ grado: grado, jornada: jornada, estado: 'Activo' });
         if (!student) {
             return null;
         }
