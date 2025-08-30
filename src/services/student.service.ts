@@ -209,8 +209,7 @@ export class StudentService {
             return null;
         }
 
-        // OBTENER EL ESTUDIANTE PRIMERO PARA FILTRAR POR JORNADA
-        const student = await this.studentRepository.findOne({ where: { id: studentId } });
+        const student = await this.studentRepository.findOne({ where: { id: studentId , estado: 'Activo'} });
         if (!student) return null;
 
         // Filtrar los scores para que solo sean del ciclo Y jornada del estudiante
