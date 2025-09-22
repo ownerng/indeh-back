@@ -212,4 +212,27 @@ export class StudentController {
             return res.status(500).json({ message: 'Error exportando estudiantes a Excel.' });
         }
     }
+
+    async getValoraciones(req: AuthenticatedRequest, res: Response): Promise<Response> {
+        if (!req.user || req.user.role !== UserRole.PROFESOR) {
+            return res.status(403).json({ message: 'Acceso denegado. Solo los profesores pueden acceder a esta información.' });
+        }
+        
+        try {
+            const valoracionesPdf = await studentService.getValoraciones(req.user.userId);
+            
+            if (!valoracionesPdf) {
+                return res.status(404).json({ message: 'No se encontraron valoraciones para este profesor.' });
+            }
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename=valoraciones.pdf');
+            res.setHeader('Content-Length', valoracionesPdf.length.toString());
+            
+            return res.status(200).end(valoracionesPdf);
+        } catch (error) {
+            console.error("Error al obtener valoraciones:", error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
 }

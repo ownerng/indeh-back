@@ -15,6 +15,8 @@ import * as puppeteer from "puppeteer";
 import { BoletinService } from "./boletin.service";
 import { Jornada } from "../entities/Jornada";
 import * as ExcelJS from "exceljs";
+import { ValoracionDTO, EstudianteValoracion, PeriodoNota } from "../dtos/valoracionDTO";
+import { PDFDocument } from 'pdf-lib';
 
 
 export class StudentService {
@@ -1289,5 +1291,229 @@ export class StudentService {
         // Generar el buffer del archivo Excel
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
+    }
+
+    async getValoraciones(professorId: number): Promise<Buffer> {
+        try {
+            // Obtener información del profesor
+            const userService = new (await import('./user.service')).UserService();
+            const professor = await userService.getUserById(professorId);
+            const professorName = professor?.username || 'PROFESOR';
+
+            // Obtener materias del profesor
+            const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
+            
+            if (subjects.length === 0) {
+                throw new Error('No se encontraron materias para este profesor');
+            }
+
+            const currentYear = new Date().getFullYear().toString();
+            const valoracionesPdfs: Buffer[] = [];
+
+            // Procesar cada materia del profesor
+            for (const subject of subjects) {
+                if (!subject.ciclo) continue;
+
+                // Determinar el semestre basado en el ciclo
+                const cicloYear = subject.ciclo.split('-')[0];
+                const semestreNumber = subject.ciclo.split('-')[1];
+                
+                if (cicloYear !== currentYear) continue; // Solo ciclos del año actual
+
+                // Obtener estudiantes para esta materia
+                const scoreService = new ScoreService();
+                const scores = await scoreService.getScoresByCiclo(subject.ciclo);
+                
+                // Filtrar scores para esta materia específica
+                const subjectScores = scores.filter(score => score.id_subject.id === subject.id);
+                
+                if (subjectScores.length === 0) continue;
+
+                // Obtener estudiantes únicos
+                const studentIds = [...new Set(subjectScores.map(score => score.id_student.id))];
+                const students = await this.studentRepository.find({
+                    where: { id: In(studentIds), estado: "Activo" },
+                    order: { nombres_apellidos: "ASC" }
+                });
+
+                // Construir datos de valoración
+                const estudiantesValoracion: EstudianteValoracion[] = students.map((student, index) => {
+                    // Encontrar los scores del estudiante para esta materia
+                    const studentScore = subjectScores.find(score => score.id_student.id === student.id);
+                    
+                    if (!studentScore) {
+                        return {
+                            numero: index + 1,
+                            nombre: student.nombres_apellidos,
+                            grado: student.grado,
+                            primer_periodo: { nota: 0, porcentaje: 0 },
+                            segundo_periodo: { nota: 0, porcentaje: 0 },
+                            tercer_periodo: { nota: 0, porcentaje: 0 },
+                            cuarto_periodo: { nota: 0, porcentaje: 0 },
+                            quinto_periodo: { nota: 0, porcentaje: 0 },
+                            sexto_periodo: { nota: 0, porcentaje: 0 },
+                            nota_final_semestre: 0
+                        };
+                    }
+
+                    // Mapear cortes a períodos según el semestre
+                    let primerPeriodo: PeriodoNota, segundoPeriodo: PeriodoNota, tercerPeriodo: PeriodoNota;
+                    let cuartoPeriodo: PeriodoNota, quintoPeriodo: PeriodoNota, sextoPeriodo: PeriodoNota;
+
+                    if (semestreNumber === '1') {
+                        // Primer semestre: cortes 1, 2, 3 -> períodos 1, 2, 3
+                        primerPeriodo = { 
+                            nota: studentScore.corte1 || 0, 
+                            porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1))
+                        };
+                        segundoPeriodo = { 
+                            nota: studentScore.corte2 || 0, 
+                            porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1))
+                        };
+                        tercerPeriodo = { 
+                            nota: studentScore.corte3 || 0, 
+                            porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1))
+                        };
+                        cuartoPeriodo = { nota: 0, porcentaje: 0 };
+                        quintoPeriodo = { nota: 0, porcentaje: 0 };
+                        sextoPeriodo = { nota: 0, porcentaje: 0 };
+                    } else {
+                        // Segundo semestre: cortes 1, 2, 3 -> períodos 4, 5, 6
+                        primerPeriodo = { nota: 0, porcentaje: 0 };
+                        segundoPeriodo = { nota: 0, porcentaje: 0 };
+                        tercerPeriodo = { nota: 0, porcentaje: 0 };
+                        cuartoPeriodo = { 
+                            nota: studentScore.corte1 || 0, 
+                            porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1))
+                        };
+                        quintoPeriodo = { 
+                            nota: studentScore.corte2 || 0, 
+                            porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1))
+                        };
+                        sextoPeriodo = { 
+                            nota: studentScore.corte3 || 0, 
+                            porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1))
+                        };
+                    }
+
+                    return {
+                        numero: index + 1,
+                        nombre: student.nombres_apellidos,
+                        grado: student.grado,
+                        primer_periodo: primerPeriodo,
+                        segundo_periodo: segundoPeriodo,
+                        tercer_periodo: tercerPeriodo,
+                        cuarto_periodo: cuartoPeriodo,
+                        quinto_periodo: quintoPeriodo,
+                        sexto_periodo: sextoPeriodo,
+                        nota_final_semestre: studentScore.notadefinitiva || 0
+                    };
+                });
+
+                // Obtener grados únicos para mostrar en el reporte
+                const gradosUnicos = [...new Set(students.map(s => s.grado))].sort();
+
+                const valoracionData: ValoracionDTO = {
+                    area: subject.nombre,
+                    profesor: professorName,
+                    ciclo: subject.ciclo,
+                    jornada: subject.jornada,
+                    semestre: semestreNumber === '1' ? 'I' : 'II',
+                    grados: gradosUnicos.join(', '),
+                    year: currentYear,
+                    estudiantes: estudiantesValoracion
+                };
+
+                // Generar PDF para esta materia
+                const pdfBuffer = await this.generateValoracionPDF(valoracionData);
+                valoracionesPdfs.push(pdfBuffer);
+            }
+
+            if (valoracionesPdfs.length === 0) {
+                throw new Error('No se generaron valoraciones para este profesor');
+            }
+
+            // Combinar todos los PDFs en uno solo
+            const mergedPdf = await this.mergePDFs(valoracionesPdfs);
+            return mergedPdf;
+
+        } catch (error) {
+            console.error('Error en getValoraciones:', error);
+            throw error;
+        }
+    }
+
+    private async generateValoracionPDF(valoracionData: ValoracionDTO): Promise<Buffer> {
+        // Construir las filas de estudiantes para el HTML
+        const estudiantesRows = valoracionData.estudiantes.map(estudiante => 
+            `<tr class="student-row">
+                <td class="student-number">${estudiante.numero}</td>
+                <td class="student-name">${estudiante.nombre}</td>
+                <td class="grade-col">${estudiante.grado}</td>
+                <td class="nota-col">${estudiante.primer_periodo.nota}</td>
+                <td class="percent-col">${estudiante.primer_periodo.porcentaje}</td>
+                <td class="nota-col">${estudiante.segundo_periodo.nota}</td>
+                <td class="percent-col">${estudiante.segundo_periodo.porcentaje}</td>
+                <td class="nota-col">${estudiante.tercer_periodo.nota}</td>
+                <td class="percent-col">${estudiante.tercer_periodo.porcentaje}</td>
+                <td class="nota-col">${estudiante.cuarto_periodo.nota}</td>
+                <td class="percent-col">${estudiante.cuarto_periodo.porcentaje}</td>
+                <td class="nota-col">${estudiante.quinto_periodo.nota}</td>
+                <td class="percent-col">${estudiante.quinto_periodo.porcentaje}</td>
+                <td class="nota-col">${estudiante.sexto_periodo.nota}</td>
+                <td class="percent-col">${estudiante.sexto_periodo.porcentaje}</td>
+                <td class="final-col">${estudiante.nota_final_semestre}</td>
+            </tr>`
+        ).join('\n');
+
+        // Leer la plantilla HTML
+        const templatePath = path.join(__dirname, '..', 'templates', 'valoracion.html');
+        const templateHtml = fs.readFileSync(templatePath, 'utf8');
+
+        // Compilar la plantilla con Handlebars
+        const template = handlebars.compile(templateHtml);
+        const html = template({
+            AREA: valoracionData.area,
+            PROFESOR: valoracionData.profesor,
+            CICLO: valoracionData.ciclo,
+            JORNADA: valoracionData.jornada,
+            SEMESTRE: valoracionData.semestre,
+            GRADOS: valoracionData.grados,
+            YEAR: valoracionData.year,
+            ESTUDIANTES_ROWS: estudiantesRows
+        });
+
+        // Generar PDF con Puppeteer
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        try {
+            const page = await browser.newPage();
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+                printBackground: true
+            });
+            
+            return Buffer.from(pdfBuffer);
+        } finally {
+            await browser.close();
+        }
+    }
+
+    private async mergePDFs(pdfBuffers: Buffer[]): Promise<Buffer> {
+        const mergedPdf = await PDFDocument.create();
+        
+        for (const pdfBuffer of pdfBuffers) {
+            const pdf = await PDFDocument.load(pdfBuffer);
+            const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+            copiedPages.forEach((page) => mergedPdf.addPage(page));
+        }
+        
+        const pdfBytes = await mergedPdf.save();
+        return Buffer.from(pdfBytes);
     }
 }
