@@ -1295,14 +1295,15 @@ export class StudentService {
         return Buffer.from(buffer);
     }
 
-    async getValoraciones(executiveId: number): Promise<Buffer> {
+    async getValoraciones(executiveId: number): Promise<Buffer | null> {
         try {
             // Obtener todos los usuarios con rol PROFESOR
             const userService = new UserService();
             const professors = await userService.getUsersByRole(UserRole.PROFESOR);
             
             if (professors.length === 0) {
-                throw new Error('No se encontraron profesores en el sistema');
+                console.warn('No se encontraron profesores en el sistema');
+                return null;
             }
 
             const currentYear = new Date().getFullYear().toString();
@@ -1338,7 +1339,10 @@ export class StudentService {
                     // Filtrar scores para esta materia específica
                     const subjectScores = scores.filter(score => score.id_subject.id === subject.id);
                     
-                    if (subjectScores.length === 0) continue;
+                    if (subjectScores.length === 0) {
+                        console.log(`Sin scores para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
+                        continue;
+                    }
 
                     // Obtener estudiantes únicos
                     const studentIds = [...new Set(subjectScores.map(score => score.id_student.id))];
@@ -1346,6 +1350,12 @@ export class StudentService {
                         where: { id: In(studentIds), estado: "Activo" },
                         order: { nombres_apellidos: "ASC" }
                     });
+
+                    // Si no hay estudiantes activos asociados a la materia, continuar
+                    if (students.length === 0) {
+                        console.log(`Sin estudiantes activos para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
+                        continue;
+                    }
 
                     // Construir datos de valoración
                     const estudiantesValoracion: EstudianteValoracion[] = students.map((student, index) => {
@@ -1442,7 +1452,8 @@ export class StudentService {
             }
 
             if (allValoracionesPdfs.length === 0) {
-                throw new Error('No se generaron valoraciones para ningún profesor');
+                console.warn('No se generaron valoraciones para ningún profesor (sin materias o sin datos)');
+                return null;
             }
 
             // Combinar todos los PDFs en uno solo
