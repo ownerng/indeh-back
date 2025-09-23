@@ -244,4 +244,33 @@ export class StudentController {
             return res.status(500).json({ message: 'Error interno del servidor.', error: error instanceof Error ? error.message : 'Unknown error' });
         }
     }
+
+    async getValoracionesByProfessor(req: AuthenticatedRequest, res: Response): Promise<Response> {
+        console.log('getValoracionesByProfessor called');
+        if (!req.user || req.user.role !== UserRole.EJECUTIVO) {
+            return res.status(403).json({ message: 'Acceso denegado. Solo los ejecutivos pueden acceder a esta información.' });
+        }
+
+        const { id } = req.params;
+        const professorId = parseInt(id);
+        if (isNaN(professorId)) {
+            return res.status(400).json({ message: 'ID de profesor no válido.' });
+        }
+
+        try {
+            console.log('Processing valoraciones for professor:', professorId);
+            const pdfBuffer = await studentService.getValoracionesByProfessor(professorId);
+            if (!pdfBuffer) {
+                return res.status(404).json({ message: 'No se encontraron valoraciones para este profesor.' });
+            }
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=valoraciones_profesor_${professorId}.pdf`);
+            res.setHeader('Content-Length', pdfBuffer.length.toString());
+            return res.status(200).end(pdfBuffer);
+        } catch (error) {
+            console.error('Error al obtener valoraciones por profesor:', error);
+            return res.status(500).json({ message: 'Error interno del servidor.' });
+        }
+    }
 }
