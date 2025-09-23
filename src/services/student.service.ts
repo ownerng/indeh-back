@@ -1612,7 +1612,7 @@ export class StudentService {
         const templatePath = path.join(__dirname, '..', 'templates', 'valoracion.html');
         const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
-        // Compilar la plantilla con Handlebars
+        // Compilar la plantilla con Handlebars (sin inyectar las filas aún)
         const template = handlebars.compile(templateHtml);
         const html = template({
             AREA: valoracionData.area,
@@ -1621,8 +1621,7 @@ export class StudentService {
             JORNADA: valoracionData.jornada,
             SEMESTRE: valoracionData.semestre,
             GRADOS: valoracionData.grados,
-            YEAR: valoracionData.year,
-            ESTUDIANTES_ROWS: estudiantesRows
+            YEAR: valoracionData.year
         });
 
         // Generar PDF con Puppeteer
@@ -1634,6 +1633,14 @@ export class StudentService {
         try {
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: 'networkidle0' });
+            // Inyectar las filas en el tbody identificado por id para asegurar ubicación y estilos correctos
+            await page.waitForSelector('#estudiantes-rows');
+            await page.evaluate((rowsHtml) => {
+                const container = document.getElementById('estudiantes-rows');
+                if (container) {
+                    container.innerHTML = rowsHtml;
+                }
+            }, estudiantesRows);
             const pdfBuffer = await page.pdf({
                 format: 'A4',
                 margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
