@@ -31,12 +31,20 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 
 export const authorizeRole = (allowedRoles: UserRole[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    console.log('authorizeRole middleware called');
+    console.log('User info:', req.user);
+    console.log('Allowed roles:', allowedRoles);
+    console.log('User role:', req.user?.role);
+    
     if (!req.user || !req.user.role) {
+      console.log('Access denied - no user or role');
       return res.status(403).json({ message: 'Acceso denegado. Rol no disponible.' });
     }
     if (!allowedRoles.includes(req.user.role)) {
+      console.log('Access denied - role not allowed');
       return res.status(403).json({ message: 'Acceso denegado. Rol no autorizado.' });
     }
+    console.log('Role authorization successful');
     next();
   };
 };

@@ -214,25 +214,35 @@ export class StudentController {
     }
 
     async getValoraciones(req: AuthenticatedRequest, res: Response): Promise<Response> {
-        if (!req.user || req.user.role !== UserRole.PROFESOR) {
-            return res.status(403).json({ message: 'Acceso denegado. Solo los profesores pueden acceder a esta información.' });
+        console.log('getValoraciones called');
+        console.log('User info:', req.user);
+        console.log('User role:', req.user?.role);
+        console.log('Required roles:', [UserRole.EJECUTIVO, UserRole.PROFESOR]);
+        
+        // Temporalmente permitimos ambos roles para testing
+        if (!req.user || (req.user.role !== UserRole.EJECUTIVO && req.user.role !== UserRole.PROFESOR)) {
+            console.log('Access denied - insufficient role');
+            return res.status(403).json({ message: 'Acceso denegado. Solo los ejecutivos y profesores pueden acceder a esta información.' });
         }
         
         try {
+            console.log('Processing valoraciones for user:', req.user.userId);
             const valoracionesPdf = await studentService.getValoraciones(req.user.userId);
             
             if (!valoracionesPdf) {
-                return res.status(404).json({ message: 'No se encontraron valoraciones para este profesor.' });
+                console.log('No valoraciones found');
+                return res.status(404).json({ message: 'No se encontraron valoraciones para generar.' });
             }
 
+            console.log('Valoraciones generated successfully, size:', valoracionesPdf.length);
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename=valoraciones.pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename=valoraciones_todos_profesores.pdf');
             res.setHeader('Content-Length', valoracionesPdf.length.toString());
             
             return res.status(200).end(valoracionesPdf);
         } catch (error) {
             console.error("Error al obtener valoraciones:", error);
-            return res.status(500).json({ message: 'Error interno del servidor.' });
+            return res.status(500).json({ message: 'Error interno del servidor.', error: error instanceof Error ? error.message : 'Unknown error' });
         }
     }
 }
