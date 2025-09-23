@@ -217,16 +217,15 @@ export class StudentController {
         console.log('getValoraciones called');
         console.log('User info:', req.user);
         console.log('User role:', req.user?.role);
-        console.log('Required roles:', [UserRole.EJECUTIVO, UserRole.PROFESOR]);
+        console.log('Required role:', UserRole.EJECUTIVO);
         
-        // Temporalmente permitimos ambos roles para testing
-        if (!req.user || (req.user.role !== UserRole.EJECUTIVO && req.user.role !== UserRole.PROFESOR)) {
+        if (!req.user || req.user.role !== UserRole.EJECUTIVO) {
             console.log('Access denied - insufficient role');
-            return res.status(403).json({ message: 'Acceso denegado. Solo los ejecutivos y profesores pueden acceder a esta información.' });
+            return res.status(403).json({ message: 'Acceso denegado. Solo los ejecutivos pueden acceder a esta información.' });
         }
         
         try {
-            console.log('Processing valoraciones for user:', req.user.userId);
+            console.log('Processing valoraciones for executive user:', req.user.userId);
             const valoracionesPdf = await studentService.getValoraciones(req.user.userId);
             
             if (!valoracionesPdf) {
