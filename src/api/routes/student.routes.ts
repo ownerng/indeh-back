@@ -48,7 +48,7 @@ routerStudent.get(
   authorizeRole([UserRole.EJECUTIVO]),
   express.json(), // Middleware para parsear JSON, solo para esta ruta
   express.urlencoded({ extended: true }),
-  studentControllerInstance.getValoracionesByProfessor
+  studentControllerInstance.getValoracionesBySubject
 )
 
 routerStudent.post(

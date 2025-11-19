@@ -4,7 +4,6 @@ import { CreateStudentDTO } from "../dtos/createStudentDTO";
 import { PgStudent } from "../entities/PgStudent";
 import { ScoreService } from "./score.service";
 import { SubjectService } from "./subject.service";
-import { UserService } from "./user.service";
 import { boletinDTO, Observaciones } from "../dtos/boletinDTO";
 import { ciclo, porcentual, desem, obs, stateStudent } from "../utils/utils";
 import { PgSubject } from "../entities/PgSubject";
@@ -15,7 +14,6 @@ import * as handlebars from "handlebars";
 import * as puppeteer from "puppeteer";
 import { BoletinService } from "./boletin.service";
 import { Jornada } from "../entities/Jornada";
-import { UserRole } from "../entities/UserRole";
 import * as ExcelJS from "exceljs";
 import { ValoracionDTO, EstudianteValoracion, PeriodoNota } from "../dtos/valoracionDTO";
 import { PDFDocument } from 'pdf-lib';
@@ -1297,292 +1295,282 @@ export class StudentService {
 
     async getValoraciones(executiveId: number): Promise<Buffer | null> {
         try {
-            // Obtener todos los usuarios con rol PROFESOR
-            const userService = new UserService();
-            const professors = await userService.getUsersByRole(UserRole.PROFESOR);
-            
-            if (professors.length === 0) {
-                console.warn('No se encontraron profesores en el sistema');
-                return null;
-            }
-
             const currentYear = new Date().getFullYear().toString();
-            const allValoracionesPdfs: Buffer[] = [];
+            const subjectService = new SubjectService();
+            const subjects = await subjectService.getAllSubjects();
 
-            // Procesar cada profesor
-            for (const professor of professors) {
-                const professorId = professor.id;
-                const professorName = professor.username || 'PROFESOR';
+            const orderedSubjects = subjects
+                .filter(subject => subject.ciclo)
+                .sort((a, b) => {
+                    const jornadaSort = this.getJornadaOrder(a.jornada) - this.getJornadaOrder(b.jornada);
+                    if (jornadaSort !== 0) return jornadaSort;
 
-                // Obtener materias del profesor
-                const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
-                
-                if (subjects.length === 0) {
-                    console.log(`No se encontraron materias para el profesor: ${professorName}`);
-                    continue;
-                }
+                    const cicloSort = this.compareCiclos(a.ciclo!, b.ciclo!);
+                    if (cicloSort !== 0) return cicloSort;
 
-                // Procesar cada materia del profesor
-                for (const subject of subjects) {
-                    if (!subject.ciclo) continue;
+                    return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+                });
 
-                    // Determinar el semestre basado en el ciclo
-                    const cicloYear = subject.ciclo.split('-')[0];
-                    const semestreNumber = subject.ciclo.split('-')[1];
-                    
-                    if (cicloYear !== currentYear) continue; // Solo ciclos del año actual
+            const pdfBuffers: Buffer[] = [];
 
-                    // Obtener estudiantes para esta materia
-                    const scoreService = new ScoreService();
-                    const scores = await scoreService.getScoresByCiclo(subject.ciclo);
-                    
-                    // Filtrar scores para esta materia específica
-                    const subjectScores = scores.filter(score => score.id_subject.id === subject.id);
-                    
-                    if (subjectScores.length === 0) {
-                        console.log(`Sin scores para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
-                        continue;
-                    }
-
-                    // Obtener estudiantes únicos
-                    const studentIds = [...new Set(subjectScores.map(score => score.id_student.id))];
-                    const students = await this.studentRepository.find({
-                        where: { id: In(studentIds), estado: "Activo" },
-                        order: { nombres_apellidos: "ASC" }
-                    });
-
-                    // Si no hay estudiantes activos asociados a la materia, continuar
-                    if (students.length === 0) {
-                        console.log(`Sin estudiantes activos para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
-                        continue;
-                    }
-
-                    // Construir datos de valoración
-                    const estudiantesValoracion: EstudianteValoracion[] = students.map((student, index) => {
-                        // Encontrar los scores del estudiante para esta materia
-                        const studentScore = subjectScores.find(score => score.id_student.id === student.id);
-                        
-                        if (!studentScore) {
-                            return {
-                                numero: index + 1,
-                                nombre: student.nombres_apellidos,
-                                grado: student.grado,
-                                primer_periodo: { nota: 0, porcentaje: 0 },
-                                segundo_periodo: { nota: 0, porcentaje: 0 },
-                                tercer_periodo: { nota: 0, porcentaje: 0 },
-                                cuarto_periodo: { nota: 0, porcentaje: 0 },
-                                quinto_periodo: { nota: 0, porcentaje: 0 },
-                                sexto_periodo: { nota: 0, porcentaje: 0 },
-                                nota_final_semestre: 0
-                            };
-                        }
-
-                        // Mapear cortes a períodos según el semestre
-                        let primerPeriodo: PeriodoNota, segundoPeriodo: PeriodoNota, tercerPeriodo: PeriodoNota;
-                        let cuartoPeriodo: PeriodoNota, quintoPeriodo: PeriodoNota, sextoPeriodo: PeriodoNota;
-
-                        if (semestreNumber === '1') {
-                            // Primer semestre: cortes 1, 2, 3 -> períodos 1, 2, 3
-                            primerPeriodo = { 
-                                nota: studentScore.corte1 || 0, 
-                                porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1))
-                            };
-                            segundoPeriodo = { 
-                                nota: studentScore.corte2 || 0, 
-                                porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1))
-                            };
-                            tercerPeriodo = { 
-                                nota: studentScore.corte3 || 0, 
-                                porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1))
-                            };
-                            cuartoPeriodo = { nota: 0, porcentaje: 0 };
-                            quintoPeriodo = { nota: 0, porcentaje: 0 };
-                            sextoPeriodo = { nota: 0, porcentaje: 0 };
-                        } else {
-                            // Segundo semestre: cortes 1, 2, 3 -> períodos 4, 5, 6
-                            primerPeriodo = { nota: 0, porcentaje: 0 };
-                            segundoPeriodo = { nota: 0, porcentaje: 0 };
-                            tercerPeriodo = { nota: 0, porcentaje: 0 };
-                            cuartoPeriodo = { 
-                                nota: studentScore.corte1 || 0, 
-                                porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1))
-                            };
-                            quintoPeriodo = { 
-                                nota: studentScore.corte2 || 0, 
-                                porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1))
-                            };
-                            sextoPeriodo = { 
-                                nota: studentScore.corte3 || 0, 
-                                porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1))
-                            };
-                        }
-
-                        return {
-                            numero: index + 1,
-                            nombre: student.nombres_apellidos,
-                            grado: student.grado,
-                            primer_periodo: primerPeriodo,
-                            segundo_periodo: segundoPeriodo,
-                            tercer_periodo: tercerPeriodo,
-                            cuarto_periodo: cuartoPeriodo,
-                            quinto_periodo: quintoPeriodo,
-                            sexto_periodo: sextoPeriodo,
-                            nota_final_semestre: studentScore.notadefinitiva || 0
-                        };
-                    });
-
-                    // Obtener grados únicos para mostrar en el reporte
-                    const gradosUnicos = [...new Set(students.map(s => s.grado))].sort();
-
-                    const valoracionData: ValoracionDTO = {
-                        area: subject.nombre,
-                        profesor: professorName,
-                        ciclo: subject.ciclo,
-                        jornada: subject.jornada,
-                        semestre: semestreNumber === '1' ? 'I' : 'II',
-                        grados: gradosUnicos.join(', '),
-                        year: currentYear,
-                        estudiantes: estudiantesValoracion
-                    };
-
-                    // Generar PDF para esta materia
-                    const pdfBuffer = await this.generateValoracionPDF(valoracionData);
-                    allValoracionesPdfs.push(pdfBuffer);
-                }
+            for (const subject of orderedSubjects) {
+                const subjectPdfs = await this.buildValoracionesForSubject(subject.id, { enforceYear: currentYear });
+                pdfBuffers.push(...subjectPdfs);
             }
 
-            if (allValoracionesPdfs.length === 0) {
-                console.warn('No se generaron valoraciones para ningún profesor (sin materias o sin datos)');
+            if (!pdfBuffers.length) {
+                console.warn('No se generaron valoraciones para ninguna asignatura');
                 return null;
             }
 
-            // Combinar todos los PDFs en uno solo
-            const mergedPdf = await this.mergePDFs(allValoracionesPdfs);
-            return mergedPdf;
-
+            return await this.mergePDFs(pdfBuffers);
         } catch (error) {
             console.error('Error en getValoraciones:', error);
             throw error;
         }
     }
 
-    async getValoracionesByProfessor(professorId: number): Promise<Buffer | null> {
+    async getValoracionesBySubject(subjectId: number): Promise<Buffer | null> {
         try {
-            const userService = new UserService();
-            const professor = await userService.getUserById(professorId);
-            if (!professor || professor.role !== UserRole.PROFESOR) {
-                console.warn(`Usuario ${professorId} no es profesor o no existe`);
+            const subjectPdfs = await this.buildValoracionesForSubject(subjectId);
+            if (!subjectPdfs.length) {
+                console.warn(`No se encontraron datos de valoración para la asignatura ${subjectId}`);
                 return null;
             }
 
-            const currentYear = new Date().getFullYear().toString();
-            const professorName = professor.username || 'PROFESOR';
-            const allValoracionesPdfs: Buffer[] = [];
-
-            // Obtener materias del profesor
-            const subjects = await new SubjectService().getSubjectsIdsByProfessorId(professorId);
-            if (subjects.length === 0) {
-                console.log(`No se encontraron materias para el profesor: ${professorName}`);
-            }
-
-            for (const subject of subjects) {
-                if (!subject.ciclo) continue;
-                const cicloYear = subject.ciclo.split('-')[0];
-                const semestreNumber = subject.ciclo.split('-')[1];
-                if (cicloYear !== currentYear) continue;
-
-                const scoreService = new ScoreService();
-                const scores = await scoreService.getScoresByCiclo(subject.ciclo);
-                const subjectScores = scores.filter(score => score.id_subject.id === subject.id);
-                if (subjectScores.length === 0) {
-                    console.log(`Sin scores para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
-                    continue;
-                }
-
-                const studentIds = [...new Set(subjectScores.map(score => score.id_student.id))];
-                const students = await this.studentRepository.find({
-                    where: { id: In(studentIds), estado: "Activo" },
-                    order: { nombres_apellidos: "ASC" }
-                });
-                if (students.length === 0) {
-                    console.log(`Sin estudiantes activos para la materia ${subject.nombre} (${subject.id}) en ciclo ${subject.ciclo}`);
-                    continue;
-                }
-
-                const estudiantesValoracion: EstudianteValoracion[] = students.map((student, index) => {
-                    const studentScore = subjectScores.find(score => score.id_student.id === student.id);
-                    if (!studentScore) {
-                        return {
-                            numero: index + 1,
-                            nombre: student.nombres_apellidos,
-                            grado: student.grado,
-                            primer_periodo: { nota: 0, porcentaje: 0 },
-                            segundo_periodo: { nota: 0, porcentaje: 0 },
-                            tercer_periodo: { nota: 0, porcentaje: 0 },
-                            cuarto_periodo: { nota: 0, porcentaje: 0 },
-                            quinto_periodo: { nota: 0, porcentaje: 0 },
-                            sexto_periodo: { nota: 0, porcentaje: 0 },
-                            nota_final_semestre: 0
-                        };
-                    }
-
-                    let primerPeriodo: PeriodoNota, segundoPeriodo: PeriodoNota, tercerPeriodo: PeriodoNota;
-                    let cuartoPeriodo: PeriodoNota, quintoPeriodo: PeriodoNota, sextoPeriodo: PeriodoNota;
-                    if (semestreNumber === '1') {
-                        primerPeriodo = { nota: studentScore.corte1 || 0, porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1)) };
-                        segundoPeriodo = { nota: studentScore.corte2 || 0, porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1)) };
-                        tercerPeriodo = { nota: studentScore.corte3 || 0, porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1)) };
-                        cuartoPeriodo = { nota: 0, porcentaje: 0 };
-                        quintoPeriodo = { nota: 0, porcentaje: 0 };
-                        sextoPeriodo = { nota: 0, porcentaje: 0 };
-                    } else {
-                        primerPeriodo = { nota: 0, porcentaje: 0 };
-                        segundoPeriodo = { nota: 0, porcentaje: 0 };
-                        tercerPeriodo = { nota: 0, porcentaje: 0 };
-                        cuartoPeriodo = { nota: studentScore.corte1 || 0, porcentaje: Number(((studentScore.corte1 || 0) * 0.15).toFixed(1)) };
-                        quintoPeriodo = { nota: studentScore.corte2 || 0, porcentaje: Number(((studentScore.corte2 || 0) * 0.15).toFixed(1)) };
-                        sextoPeriodo = { nota: studentScore.corte3 || 0, porcentaje: Number(((studentScore.corte3 || 0) * 0.20).toFixed(1)) };
-                    }
-
-                    return {
-                        numero: index + 1,
-                        nombre: student.nombres_apellidos,
-                        grado: student.grado,
-                        primer_periodo: primerPeriodo,
-                        segundo_periodo: segundoPeriodo,
-                        tercer_periodo: tercerPeriodo,
-                        cuarto_periodo: cuartoPeriodo,
-                        quinto_periodo: quintoPeriodo,
-                        sexto_periodo: sextoPeriodo,
-                        nota_final_semestre: studentScore.notadefinitiva || 0
-                    };
-                });
-
-                const gradosUnicos = [...new Set(students.map(s => s.grado))].sort();
-                const valoracionData: ValoracionDTO = {
-                    area: subject.nombre,
-                    profesor: professorName,
-                    ciclo: subject.ciclo,
-                    jornada: subject.jornada,
-                    semestre: semestreNumber === '1' ? 'I' : 'II',
-                    grados: gradosUnicos.join(', '),
-                    year: currentYear,
-                    estudiantes: estudiantesValoracion
-                };
-
-                const pdfBuffer = await this.generateValoracionPDF(valoracionData);
-                allValoracionesPdfs.push(pdfBuffer);
-            }
-
-            if (allValoracionesPdfs.length === 0) {
-                return null;
-            }
-            const mergedPdf = await this.mergePDFs(allValoracionesPdfs);
-            return mergedPdf;
+            return await this.mergePDFs(subjectPdfs);
         } catch (error) {
-            console.error('Error en getValoracionesByProfessor:', error);
+            console.error('Error en getValoracionesBySubject:', error);
             throw error;
         }
+    }
+
+    private async buildValoracionesForSubject(subjectId: number, options?: { enforceYear?: string }): Promise<Buffer[]> {
+        const subjectService = new SubjectService();
+        const subject = await subjectService.getSubjectById(subjectId);
+
+        if (!subject) {
+            console.warn(`La asignatura ${subjectId} no existe.`);
+            return [];
+        }
+
+        if (!subject.ciclo) {
+            console.warn(`La asignatura ${subject.nombre} (${subject.id}) no tiene ciclo asignado.`);
+            return [];
+        }
+
+        const [cicloYear, semestreNumber] = subject.ciclo.split('-');
+        if (!cicloYear || !semestreNumber) {
+            console.warn(`El ciclo ${subject.ciclo} de la asignatura ${subject.nombre} no tiene el formato esperado año-semestre.`);
+            return [];
+        }
+
+        if (options?.enforceYear && cicloYear !== options.enforceYear) {
+            return [];
+        }
+
+        const scoreService = new ScoreService();
+        const scores = await scoreService.getScoresByCiclo(subject.ciclo);
+        const subjectScores = scores.filter(score => score.id_subject.id === subject.id);
+        const activeScores = subjectScores.filter(score => 
+            score.id_student &&
+            score.id_student.estado === "Activo" &&
+            score.id_student.jornada === subject.jornada
+        );
+
+        if (!activeScores.length) {
+            console.warn(`No hay estudiantes activos para la materia ${subject.nombre} (${subject.id}) en ${subject.ciclo}.`);
+            return [];
+        }
+
+        const estudiantesValoracion = activeScores.map(score => this.buildEstudianteValoracion(score, semestreNumber));
+        const groupedStudents = this.groupStudentsByGradePairs(estudiantesValoracion);
+
+        if (!groupedStudents.length) {
+            return [];
+        }
+
+        const pdfBuffers: Buffer[] = [];
+
+        for (const group of groupedStudents) {
+            const estudiantesOrdenados = group.students.map((student, index) => ({
+                ...student,
+                numero: index + 1
+            }));
+
+            const valoracionData: ValoracionDTO = {
+                area: subject.nombre,
+                profesor: subject.profesor?.username || 'SIN PROFESOR',
+                ciclo: subject.ciclo,
+                jornada: subject.jornada,
+                semestre: semestreNumber === '1' ? 'I' : 'II',
+                grados: group.displayGrades,
+                year: cicloYear,
+                estudiantes: estudiantesOrdenados
+            };
+
+            const pdfBuffer = await this.generateValoracionPDF(valoracionData);
+            pdfBuffers.push(pdfBuffer);
+        }
+
+        return pdfBuffers;
+    }
+
+    private buildEstudianteValoracion(score: PgScore, semestreNumber: string): EstudianteValoracion {
+        const periodos = this.mapScoreToPeriodos(score, semestreNumber);
+        return {
+            numero: 0,
+            nombre: score.id_student.nombres_apellidos,
+            grado: score.id_student.grado,
+            ...periodos,
+            nota_final_semestre: score.notadefinitiva || 0
+        };
+    }
+
+    private mapScoreToPeriodos(score: PgScore, semestreNumber: string): {
+        primer_periodo: PeriodoNota;
+        segundo_periodo: PeriodoNota;
+        tercer_periodo: PeriodoNota;
+        cuarto_periodo: PeriodoNota;
+        quinto_periodo: PeriodoNota;
+        sexto_periodo: PeriodoNota;
+    } {
+        const buildPeriodo = (nota: number | null | undefined, factor: number): PeriodoNota => ({
+            nota: nota ?? 0,
+            porcentaje: Number((((nota ?? 0) * factor).toFixed(1)))
+        });
+
+        if (semestreNumber === '1') {
+            return {
+                primer_periodo: buildPeriodo(score.corte1, 0.15),
+                segundo_periodo: buildPeriodo(score.corte2, 0.15),
+                tercer_periodo: buildPeriodo(score.corte3, 0.20),
+                cuarto_periodo: { nota: 0, porcentaje: 0 },
+                quinto_periodo: { nota: 0, porcentaje: 0 },
+                sexto_periodo: { nota: 0, porcentaje: 0 }
+            };
+        }
+
+        return {
+            primer_periodo: { nota: 0, porcentaje: 0 },
+            segundo_periodo: { nota: 0, porcentaje: 0 },
+            tercer_periodo: { nota: 0, porcentaje: 0 },
+            cuarto_periodo: buildPeriodo(score.corte1, 0.15),
+            quinto_periodo: buildPeriodo(score.corte2, 0.15),
+            sexto_periodo: buildPeriodo(score.corte3, 0.20)
+        };
+    }
+
+    private groupStudentsByGradePairs(students: EstudianteValoracion[]): { key: string; displayGrades: string; students: EstudianteValoracion[]; order: number }[] {
+        const pairDefinitions = [
+            { key: '6y7', grades: [6, 7], order: 0, label: '6, 7' },
+            { key: '8y9', grades: [8, 9], order: 1, label: '8, 9' },
+            { key: '10y11', grades: [10, 11], order: 2, label: '10, 11' }
+        ];
+
+        const pairMap = new Map<string, EstudianteValoracion[]>();
+        const otherMap = new Map<string, EstudianteValoracion[]>();
+
+        for (const student of students) {
+            const gradeNumber = this.parseGradeNumber(student.grado);
+            const pair = pairDefinitions.find(def => def.grades.includes(gradeNumber));
+
+            if (pair) {
+                const list = pairMap.get(pair.key) ?? [];
+                list.push(student);
+                pairMap.set(pair.key, list);
+            } else {
+                const list = otherMap.get(student.grado) ?? [];
+                list.push(student);
+                otherMap.set(student.grado, list);
+            }
+        }
+
+        const result: { key: string; displayGrades: string; students: EstudianteValoracion[]; order: number }[] = [];
+
+        for (const pair of pairDefinitions) {
+            const list = pairMap.get(pair.key);
+            if (list && list.length) {
+                const sorted = this.sortStudentsByGradeAndName(list);
+                const display = [...new Set(sorted.map(s => s.grado))].join(', ');
+                result.push({
+                    key: pair.key,
+                    displayGrades: display || pair.label,
+                    students: sorted,
+                    order: pair.order
+                });
+            }
+        }
+
+        const otherGroups = Array.from(otherMap.entries()).map(([grade, list]) => {
+            const sorted = this.sortStudentsByGradeAndName(list);
+            const gradeOrder = this.parseGradeNumber(grade);
+            return {
+                key: grade,
+                displayGrades: grade,
+                students: sorted,
+                order: 3 + gradeOrder
+            };
+        }).sort((a, b) => {
+            if (a.order !== b.order) {
+                return a.order - b.order;
+            }
+            return a.displayGrades.localeCompare(b.displayGrades, 'es', { sensitivity: 'base' });
+        });
+
+        return [...result, ...otherGroups];
+    }
+
+    private sortStudentsByGradeAndName(students: EstudianteValoracion[]): EstudianteValoracion[] {
+        return [...students].sort((a, b) => {
+            const gradeA = this.parseGradeNumber(a.grado);
+            const gradeB = this.parseGradeNumber(b.grado);
+
+            if (gradeA !== gradeB) {
+                return gradeA - gradeB;
+            }
+
+            return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+        });
+    }
+
+    private parseGradeNumber(grade: string): number {
+        if (!grade) {
+            return Number.MAX_SAFE_INTEGER;
+        }
+
+        const match = grade.match(/\d+/);
+        if (!match) {
+            return Number.MAX_SAFE_INTEGER;
+        }
+
+        const parsed = parseInt(match[0], 10);
+        return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+    }
+
+    private getJornadaOrder(jornada: string): number {
+        const order = ['mañana', 'tarde', 'noche', 'sabado', 'tutorias'];
+        const normalized = typeof jornada === 'string' ? jornada.toLowerCase() : '';
+        const idx = order.indexOf(normalized);
+        return idx === -1 ? order.length : idx;
+    }
+
+    private compareCiclos(cicloA?: string | null, cicloB?: string | null): number {
+        if (!cicloA && !cicloB) return 0;
+        if (!cicloA) return 1;
+        if (!cicloB) return -1;
+
+        const [yearA, semesterA] = cicloA.split('-');
+        const [yearB, semesterB] = cicloB.split('-');
+
+        const yearDiff = (parseInt(yearA, 10) || 0) - (parseInt(yearB, 10) || 0);
+        if (yearDiff !== 0) {
+            return yearDiff;
+        }
+
+        const semA = semesterA === '1' ? 0 : 1;
+        const semB = semesterB === '1' ? 0 : 1;
+        return semA - semB;
     }
 
     private async generateValoracionPDF(valoracionData: ValoracionDTO): Promise<Buffer> {

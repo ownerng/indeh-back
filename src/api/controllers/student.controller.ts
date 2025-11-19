@@ -245,31 +245,31 @@ export class StudentController {
         }
     }
 
-    async getValoracionesByProfessor(req: AuthenticatedRequest, res: Response): Promise<Response> {
-        console.log('getValoracionesByProfessor called');
+    async getValoracionesBySubject(req: AuthenticatedRequest, res: Response): Promise<Response> {
+        console.log('getValoracionesBySubject called');
         if (!req.user || req.user.role !== UserRole.EJECUTIVO) {
             return res.status(403).json({ message: 'Acceso denegado. Solo los ejecutivos pueden acceder a esta información.' });
         }
 
         const { id } = req.params;
-        const professorId = parseInt(id);
-        if (isNaN(professorId)) {
-            return res.status(400).json({ message: 'ID de profesor no válido.' });
+        const subjectId = parseInt(id);
+        if (isNaN(subjectId)) {
+            return res.status(400).json({ message: 'ID de asignatura no válido.' });
         }
 
         try {
-            console.log('Processing valoraciones for professor:', professorId);
-            const pdfBuffer = await studentService.getValoracionesByProfessor(professorId);
+            console.log('Processing valoraciones for subject:', subjectId);
+            const pdfBuffer = await studentService.getValoracionesBySubject(subjectId);
             if (!pdfBuffer) {
-                return res.status(404).json({ message: 'No se encontraron valoraciones para este profesor.' });
+                return res.status(404).json({ message: 'No se encontraron valoraciones para esta asignatura.' });
             }
 
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=valoraciones_profesor_${professorId}.pdf`);
+            res.setHeader('Content-Disposition', `attachment; filename=valoraciones_asignatura_${subjectId}.pdf`);
             res.setHeader('Content-Length', pdfBuffer.length.toString());
             return res.status(200).end(pdfBuffer);
         } catch (error) {
-            console.error('Error al obtener valoraciones por profesor:', error);
+            console.error('Error al obtener valoraciones por asignatura:', error);
             return res.status(500).json({ message: 'Error interno del servidor.' });
         }
     }
