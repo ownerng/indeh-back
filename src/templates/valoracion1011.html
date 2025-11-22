@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formato de Valoraciones Definitivas - INDEH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            font-size: 10px;
+            background-color: white;
+            line-height: 1;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            border: 2px solid black;
+            margin-bottom: 0;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-right: 2px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            flex-shrink: 0;
+        }
+        
+        .logo-circle {
+            width: 80px;
+            height: 80px;
+            border: 3px solid navy;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: navy;
+            font-weight: bold;
+            font-size: 8px;
+            text-align: center;
+            background-color: white;
+            line-height: 1.1;
+        }
+        
+        .header-text {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+        }
+        
+        .header-text h1 {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            letter-spacing: 0.5px;
+        }
+        
+        .header-text .subtitle {
+            font-size: 9px;
+            margin: 2px 0;
+            font-weight: bold;
+        }
+        
+        .info-section {
+            border: 2px solid black;
+            border-top: none;
+            display: flex;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .info-item {
+            padding: 4px 6px;
+            border-right: 1px solid black;
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-item:last-child {
+            border-right: none;
+        }
+        
+        .area-info { flex: 0 0 100px; }
+        .profesor-info { flex: 1; }
+        .ciclo-info { flex: 0 0 80px; }
+        .jorn-info { flex: 0 0 60px; }
+        .sem-info { flex: 0 0 40px; }
+        .grados-info { flex: 0 0 80px; }
+        
+        .year-section {
+            border: 2px solid black;
+            border-top: none;
+            text-align: center;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #f8f8f8;
+        }
+        
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            border-top: none;
+            font-size: 8px;
+        }
+        
+        .main-table th, .main-table td {
+            border: 1px solid black;
+            padding: 3px 2px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .main-table th {
+            background-color: #e8e8e8;
+            font-weight: bold;
+            font-size: 8px;
+        }
+        
+        .student-name {
+            text-align: left;
+            padding-left: 4px;
+            font-size: 8px;
+            width: 180px;
+            max-width: 180px;
+        }
+        
+        .grade-col {
+            width: 35px;
+        }
+        
+        .nota-col {
+            width: 25px;
+        }
+        
+        .percent-col {
+            width: 20px;
+        }
+        
+        .final-col {
+            width: 40px;
+            font-weight: bold;
+        }
+        
+        .signature-section {
+            border: 2px solid black;
+            border-top: none;
+            display: flex;
+            height: 80px;
+        }
+        
+        .firma-profesor {
+            flex: 1;
+            border-right: 1px solid black;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 8px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .firma-coordinador {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 8px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .student-row td {
+            font-size: 8px;
+        }
+        
+        .student-number {
+            width: 25px;
+            font-weight: bold;
+        }
+        
+        @page {
+            margin: 1cm;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="https://file.garden/aBr7cUHDNAeZ_VnW/logoindeh.png" alt="indeh"
+                style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        <div class="header-text">
+            <h1>INSTITUTO NACIONAL DE DESARROLLO HUMANO - INDEH</h1>
+            <div class="subtitle">BACHILLERATO POR CICLOS LECTIVOS ESPECIALES INTEGRADOS DECRETO 3011 DE 1997</div>
+            <div class="subtitle">FORMATO DE VALORACIONES DEFINITIVAS</div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-item area-info">AREA: {{AREA}}</div>
+        <div class="info-item profesor-info">PROFESOR: {{PROFESOR}}</div>
+        <div class="info-item ciclo-info">CICLO: {{CICLO}}</div>
+        <div class="info-item jorn-info">JORN: {{JORNADA}}</div>
+        <div class="info-item sem-info">SEM: {{SEMESTRE}}</div>
+        <div class="info-item grados-info">GRADOS: {{GRADOS}}</div>
+    </div>
+
+    <div class="year-section">
+        AÑO LECTIVO {{YEAR}}
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th rowspan="2" class="student-number">No</th>
+                <th rowspan="2" class="student-name">NOMBRE ESTUDIANTE</th>
+                <th rowspan="2" class="grade-col">GRADO</th>
+                <th colspan="2">PRIMER PERIODO</th>
+                <th colspan="2">SEGUNDO PERIODO</th>
+                <th colspan="2">TERCER PERIODO</th>
+                <th rowspan="2" class="final-col">NOTA FINAL SEMESTRE</th>
+            </tr>
+            <tr>
+                <th class="nota-col">NOTA</th>
+                <th class="percent-col">30%</th>
+                <th class="nota-col">NOTA</th>
+                <th class="percent-col">30%</th>
+                <th class="nota-col">NOTA</th>
+                <th class="percent-col">40%</th>
+            </tr>
+        </thead>
+        <tbody id="estudiantes-rows">
+        </tbody>
+    </table>
+
+    <div class="signature-section">
+        <div class="firma-profesor">FIRMA PROFESOR</div>
+        <div class="firma-coordinador">FIRMA COORDINADOR ACADEMICO</div>
+    </div>
+</body>
+</html>

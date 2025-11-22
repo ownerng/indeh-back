@@ -1409,7 +1409,13 @@ export class StudentService {
                 estudiantes: estudiantesOrdenados
             };
 
-            const pdfBuffer = await this.generateValoracionPDF(valoracionData);
+            const uses1011Template = group.students.some(student => {
+                const gradeNumber = this.parseGradeNumber(student.grado);
+                return gradeNumber === 10 || gradeNumber === 11;
+            });
+
+            const templateFile = uses1011Template ? 'valoracion1011.html' : 'valoracion.html';
+            const pdfBuffer = await this.generateValoracionPDF(valoracionData, templateFile);
             pdfBuffers.push(pdfBuffer);
         }
 
@@ -1573,7 +1579,7 @@ export class StudentService {
         return semA - semB;
     }
 
-    private async generateValoracionPDF(valoracionData: ValoracionDTO): Promise<Buffer> {
+    private async generateValoracionPDF(valoracionData: ValoracionDTO, templateFile = 'valoracion.html'): Promise<Buffer> {
         // Construir las filas de estudiantes para el HTML
         const estudiantesRows = valoracionData.estudiantes.map(estudiante => 
             `<tr class="student-row">
@@ -1597,7 +1603,7 @@ export class StudentService {
         ).join('\n');
 
         // Leer la plantilla HTML
-        const templatePath = path.join(__dirname, '..', 'templates', 'valoracion.html');
+    const templatePath = path.join(__dirname, '..', 'templates', templateFile);
         const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
         // Compilar la plantilla con Handlebars (sin inyectar las filas aún)
