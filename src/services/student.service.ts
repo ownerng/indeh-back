@@ -1580,9 +1580,36 @@ export class StudentService {
     }
 
     private async generateValoracionPDF(valoracionData: ValoracionDTO, templateFile = 'valoracion.html'): Promise<Buffer> {
-        // Construir las filas de estudiantes para el HTML
-        const estudiantesRows = valoracionData.estudiantes.map(estudiante => 
-            `<tr class="student-row">
+        const estudiantesRows = valoracionData.estudiantes.map(estudiante => {
+            if (templateFile === 'valoracion1011.html') {
+                const isFirstSemester = valoracionData.semestre === 'I';
+                const periodo1 = isFirstSemester ? estudiante.primer_periodo : estudiante.cuarto_periodo;
+                const periodo2 = isFirstSemester ? estudiante.segundo_periodo : estudiante.quinto_periodo;
+                const periodo3 = isFirstSemester ? estudiante.tercer_periodo : estudiante.sexto_periodo;
+
+                const nota1 = periodo1.nota ?? 0;
+                const nota2 = periodo2.nota ?? 0;
+                const nota3 = periodo3.nota ?? 0;
+
+                const porcentual = (nota: number, factor: number) => Number(((nota ?? 0) * factor).toFixed(1));
+
+                return `
+                <tr class="student-row">
+                    <td class="student-number">${estudiante.numero}</td>
+                    <td class="student-name">${estudiante.nombre}</td>
+                    <td class="grade-col">${estudiante.grado}</td>
+                    <td class="nota-col">${nota1}</td>
+                    <td class="percent-col">${porcentual(nota1, 0.3)}</td>
+                    <td class="nota-col">${nota2}</td>
+                    <td class="percent-col">${porcentual(nota2, 0.3)}</td>
+                    <td class="nota-col">${nota3}</td>
+                    <td class="percent-col">${porcentual(nota3, 0.4)}</td>
+                    <td class="final-col">${estudiante.nota_final_semestre}</td>
+                </tr>`;
+            }
+
+            return `
+            <tr class="student-row">
                 <td class="student-number">${estudiante.numero}</td>
                 <td class="student-name">${estudiante.nombre}</td>
                 <td class="grade-col">${estudiante.grado}</td>
@@ -1599,8 +1626,8 @@ export class StudentService {
                 <td class="nota-col">${estudiante.sexto_periodo.nota}</td>
                 <td class="percent-col">${estudiante.sexto_periodo.porcentaje}</td>
                 <td class="final-col">${estudiante.nota_final_semestre}</td>
-            </tr>`
-        ).join('\n');
+            </tr>`;
+        }).join('\n');
 
         // Leer la plantilla HTML
     const templatePath = path.join(__dirname, '..', 'templates', templateFile);
